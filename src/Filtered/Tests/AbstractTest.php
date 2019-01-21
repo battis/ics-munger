@@ -13,5 +13,5 @@ abstract class AbstractTest extends AbstractFilter
      * @param calendarComponent $component
      * @return bool
      */
-    public abstract function apply(calendarComponent $component): bool;
+    abstract public function apply(calendarComponent $component): bool;
 }

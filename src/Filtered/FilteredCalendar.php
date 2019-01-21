@@ -54,7 +54,7 @@ class FilteredCalendar extends AbstractCalendar
             $deleted = 0;
             while ($event = $this->data->getComponent('vevent')) {
                 $uid = $event->getProperty('uid');
-                if ($this->test->apply($event) == false) {
+                if ($this->test->apply($event) === false) {
                     $this->data->deleteComponent($uid);
                     $deleted++;
                 }
