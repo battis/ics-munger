@@ -5,7 +5,7 @@ namespace Battis\IcsMunger\Filtered\Tests\Comparisons;
 
 
 use Battis\IcsMunger\Filtered\Tests\AbstractTest;
-use Exception;
+use Battis\IcsMunger\IcsMungerException;
 use kigkonsult\iCalcreator\calendarComponent;
 
 abstract class AbstractComparison extends AbstractTest
@@ -19,7 +19,7 @@ abstract class AbstractComparison extends AbstractTest
      * ComparisonFilter constructor.
      * @param string|string[] $properties
      * @param mixed $value
-     * @throws Exception
+     * @throws IcsMungerException
      */
     public function __construct($properties, $value)
     {

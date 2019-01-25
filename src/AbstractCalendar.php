@@ -4,7 +4,6 @@
 namespace Battis\IcsMunger;
 
 
-use Exception;
 use kigkonsult\iCalcreator\vcalendar;
 
 abstract class AbstractCalendar
@@ -17,7 +16,7 @@ abstract class AbstractCalendar
     /**
      * Calendar constructor.
      * @param AbstractCalendar|vcalendar|array|string $data
-     * @throws Exception
+     * @throws IcsMungerException
      */
     public function __construct($data)
     {
@@ -38,23 +37,25 @@ abstract class AbstractCalendar
 
     /**
      * @param vcalendar|array|string $data URI or iCalendar text
-     * @throws Exception
      * @link https://kigkonsult.se/iCalcreator/docs/using.html#vcalendar_constr kigconsult/icalcreator/vcalendar::__construct()
+     * @throws IcsMungerException
      */
     public function setData($data): void
     {
         $config = ['unique_id' => static::class];
         if ($data instanceof vcalendar) {
             $this->data = $data;
+            return;
         } elseif (is_array($data)) {
             $config = $data + $config;
-        } elseif (is_string($data)) {
+        } elseif (strstr($data, '://') == true) {
             $config['url'] = $data;
-        } else {
-            throw new Exception('Array or string required, ' . gettype($data) . ' received');
+        } elseif (!is_string($data)) {
+            throw new IcsMungerException('Array or string required, ' . gettype($data) . ' received');
         }
         $this->data = new vcalendar($config);
-        if (empty($config['url']) && empty($config['filename'])) {
+        if (empty($config['url']) && is_string($data)) {
+            if (file_exists($data)) $data = file_get_contents($data);
             $this->data->parse($data);
         } else {
             $this->data->parse();

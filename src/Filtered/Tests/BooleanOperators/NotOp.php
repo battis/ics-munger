@@ -5,7 +5,7 @@ namespace Battis\IcsMunger\Filtered\Tests\BooleanOperators;
 
 
 use Battis\IcsMunger\Filtered\Tests\AbstractTest;
-use Exception;
+use Battis\IcsMunger\IcsMungerException;
 use kigkonsult\iCalcreator\calendarComponent;
 
 class NotOp extends AbstractOperator
@@ -13,7 +13,7 @@ class NotOp extends AbstractOperator
     /**
      * Not constructor.
      * @param AbstractTest|AbstractTest[] $test
-     * @throws Exception
+     * @throws IcsMungerException
      */
     public function __construct($test)
     {
@@ -22,7 +22,7 @@ class NotOp extends AbstractOperator
         } elseif (is_array($test)) {
             parent::__construct([$test[0]]);
         } else {
-            throw new Exception('Expected Filter or Filter[], received ' . gettype($test));
+            throw new IcsMungerException('Expected Filter or Filter[], received ' . gettype($test));
         }
     }
 
