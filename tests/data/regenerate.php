@@ -4,7 +4,7 @@ use kigkonsult\iCalcreator\vcalendar;
 use kigkonsult\iCalcreator\vevent;
 use kigkonsult\iCalcreator\vtimezone;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 define('START_YEAR', 2015);
 define('END_YEAR', 2025);
@@ -47,7 +47,7 @@ END:VTIMEZONE
     $base->addComponent($tz);
 
     $base->setConfig([
-        'directory' => __DIR__ . '/../tests/data/calendars',
+        'directory' => __DIR__ . '/calendars',
         'filename' => 'base.ics'
     ]);
     return $base;
@@ -112,10 +112,10 @@ function saveSnapshots(vcalendar $baseCalendar, array $snapshotSet, int $mode = 
     $step = intdiv(END_YEAR - START_YEAR, SNAPSHOTS + 1);
     for ($i = 0; $i < SNAPSHOTS; $i++) {
         $start = START_YEAR + ($i * $step);
-        $end = START_YEAR + ($i * $step) + $window;
+        $end = START_YEAR + ($i * $step) + $window + 1;
         $counter = 0;
         echo "  1/1/$start thru 12/31/$end ";
-        $baseCalendar->getComponent('vevent'); // FIXME this seems necessary to reset the selection on $base
+        $baseCalendar->getComponent(0); // reset internal component counter
         if (($selection = $baseCalendar->selectComponents($start, 1, 1, $end, 12, 31)) !== false) {
             foreach ($selection as $year) {
                 foreach ($year as $month) {
