@@ -4,20 +4,16 @@
 namespace Battis\IcsMunger\Filtered\Tests\BooleanOperators;
 
 
-use kigkonsult\iCalcreator\calendarComponent;
+use Battis\IcsMunger\Calendar\Event;
 
 class OrOp extends AbstractOperator
 {
 
-    /**
-     * @param calendarComponent $component
-     * @return bool
-     */
-    public function apply(calendarComponent $component): bool
+    public function apply(Event $event): bool
     {
         $expression = false;
         foreach ($this->tests as $test) {
-            $expression = $expression || $test->apply($component);
+            $expression = $expression || $test->apply($event);
         }
         return $expression;
     }

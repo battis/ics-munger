@@ -3,7 +3,6 @@ filter:
 
 checks:
     php: true
-#    javascript: true
 
 tools:
     php_code_sniffer:

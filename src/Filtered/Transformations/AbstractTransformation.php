@@ -4,14 +4,10 @@
 namespace Battis\IcsMunger\Filtered\Transformations;
 
 
+use Battis\IcsMunger\Calendar\Event;
 use Battis\IcsMunger\Filtered\AbstractFilter;
-use kigkonsult\iCalcreator\calendarComponent;
 
 abstract class AbstractTransformation extends AbstractFilter
 {
-    /**
-     * @param calendarComponent $component
-     * @return calendarComponent
-     */
-    abstract public function transform(calendarComponent $component): calendarComponent;
+    abstract public function transform(Event $event): Event;
 }

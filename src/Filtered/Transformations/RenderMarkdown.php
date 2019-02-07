@@ -4,7 +4,7 @@
 namespace Battis\IcsMunger\Filtered\Transformations;
 
 
-use kigkonsult\iCalcreator\calendarComponent;
+use Battis\IcsMunger\Calendar\Event;
 use Michelf\Markdown;
 
 class RenderMarkdown extends AbstractTransformation
@@ -19,15 +19,11 @@ class RenderMarkdown extends AbstractTransformation
         parent::__construct($properties);
     }
 
-    /**
-     * @param calendarComponent $component
-     * @return calendarComponent
-     */
-    public function transform(calendarComponent $component): calendarComponent
+    public function transform(Event $event): Event
     {
         foreach ($this->properties as $property) {
-            $component->setProperty($property, Markdown::defaultTransform(str_replace('\n', "\n\n", $component->getProperty($property))));
+            $event->setProperty($property, Markdown::defaultTransform(str_replace('\n', "\n\n", $event->getProperty($property))));
         }
-        return $component;
+        return $event;
     }
 }

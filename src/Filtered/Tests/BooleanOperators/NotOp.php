@@ -4,16 +4,17 @@
 namespace Battis\IcsMunger\Filtered\Tests\BooleanOperators;
 
 
+use Battis\IcsMunger\Calendar\Event;
+use Battis\IcsMunger\Filtered\FilterException;
 use Battis\IcsMunger\Filtered\Tests\AbstractTest;
-use Battis\IcsMunger\IcsMungerException;
-use kigkonsult\iCalcreator\calendarComponent;
+
 
 class NotOp extends AbstractOperator
 {
     /**
      * Not constructor.
      * @param AbstractTest|AbstractTest[] $test
-     * @throws IcsMungerException
+     * @throws FilterException
      */
     public function __construct($test)
     {
@@ -22,16 +23,16 @@ class NotOp extends AbstractOperator
         } elseif (is_array($test)) {
             parent::__construct([$test[0]]);
         } else {
-            throw new IcsMungerException('Expected Filter or Filter[], received ' . gettype($test));
+            throw new OperatorException('Expected Filter or Filter[], received ' . gettype($test));
         }
     }
 
     /**
-     * @param calendarComponent $component
+     * @param Event $event
      * @return bool
      */
-    public function apply(calendarComponent $component): bool
+    public function apply(Event $event): bool
     {
-        return !$this->tests[0]->apply($component);
+        return !$this->tests[0]->apply($event);
     }
 }

@@ -38,6 +38,11 @@ END:VTIMEZONE
 EOT;
 
     /**
+     * @var string
+     */
+    private static $calendarDirectory = null;
+
+    /**
      * @var vcalendar
      */
     private $base;
@@ -51,6 +56,16 @@ EOT;
      * @var DateTime
      */
     private $end;
+
+    /**
+     * @var string[]
+     */
+    private $summaries = [];
+
+    /**
+     * @var string[]
+     */
+    private $descriptions = [];
 
     /**
      * CalendarGenerator constructor.
@@ -87,17 +102,45 @@ EOT;
         $end = $end->getTimestamp();
         for ($i = 0; $i < $eventCount; $i++) {
             $e = new vevent();
-            $e->setSummary(random_factor());
-            $e->setDescription(random_factor());
+            $summary = random_factor();
+            $description = random_factor();
+            $e->setSummary($summary);
+            $e->setDescription($description);
             $e->setDtstart(date('c', rand($start, $end)));
             $e->setDuration(0, 0, rand(0, 3), rand(1, 45));
             $this->base->addComponent($e);
+            array_push($this->summaries, $summary);
+            array_push($this->descriptions, $description);
         }
     }
 
-    public function save(string $directory, string $filename): void
+    public function setCalendarDirectory(string $directory): void
     {
-        $this->base->setConfig('directory', $directory);
+        self::$calendarDirectory = $directory;
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function emptyCalendarDirectory(): void
+    {
+        if (self::$calendarDirectory === null) throw new Exception('Must set directory');
+        foreach (scandir(self::$calendarDirectory) as $file) {
+            if (is_file(self::$calendarDirectory . DIRECTORY_SEPARATOR . $file)) {
+                unlink(self::$calendarDirectory . DIRECTORY_SEPARATOR . $file);
+            }
+        }
+    }
+
+    /**
+     * @param string $filename
+     * @throws Exception
+     */
+    public function save(string $filename): void
+    {
+        if (self::$calendarDirectory === null) throw new Exception('Must set directory');
+        if (!strpos($filename, '.ics')) $filename .= '.ics';
+        $this->base->setConfig('directory', self::$calendarDirectory);
         $this->base->setConfig('filename', $filename);
         $this->base->saveCalendar();
     }
@@ -176,5 +219,15 @@ EOT;
         $minutes = (int)($seconds / 60);
         if ($minutes) $seconds = $seconds % ($minutes * 60);
         return new DateInterval("P{$years}Y{$days}DT{$hours}H{$minutes}M{$seconds}S");
+    }
+
+    public function getRandomSummary(): string
+    {
+        return $this->summaries[rand(0, count($this->summaries) - 1)];
+    }
+
+    public function getRandomDescription(): string
+    {
+        return $this->descriptions[rand(0, count($this->descriptions) - 1)];
     }
 }

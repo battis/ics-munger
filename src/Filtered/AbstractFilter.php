@@ -4,8 +4,6 @@
 namespace Battis\IcsMunger\Filtered;
 
 
-use Battis\IcsMunger\IcsMungerException;
-
 class AbstractFilter
 {
     /**
@@ -16,7 +14,7 @@ class AbstractFilter
     /**
      * Filter constructor.
      * @param string|string[] $properties
-     * @throws IcsMungerException
+     * @throws FilterException
      */
     public function __construct($properties)
     {
@@ -25,19 +23,19 @@ class AbstractFilter
         } elseif (is_array($properties)) {
             foreach ($properties as $property) {
                 if (!is_string($property)) {
-                    throw new IcsMungerException('Expected string[] included ' . gettype($property));
+                    throw new FilterException('Expected string[] included ' . gettype($property));
                 }
             }
             $this->properties = $properties;
         } else {
-            throw new IcsMungerException('Expected string or string[], received ' . gettype($properties));
+            throw new FilterException('Expected string or string[], received ' . gettype($properties));
         }
     }
 
     /**
      * @param mixed ...$params
      * @return AbstractFilter
-     * @throws IcsMungerException
+     * @throws FilterException
      */
     public static function expr(...$params): AbstractFilter
     {

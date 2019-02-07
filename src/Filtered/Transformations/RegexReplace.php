@@ -4,7 +4,7 @@
 namespace Battis\IcsMunger\Filtered\Transformations;
 
 
-use kigkonsult\iCalcreator\calendarComponent;
+use Battis\IcsMunger\Calendar\Event;
 
 class RegexReplace extends AbstractTransformation
 {
@@ -18,22 +18,18 @@ class RegexReplace extends AbstractTransformation
      */
     private $replacement;
 
-    public function __construct($properties, $pattern, $replacement)
+    public function __construct($properties, string $pattern, string $replacement)
     {
         parent::__construct($properties);
         $this->pattern = $pattern;
         $this->replacement = $replacement;
     }
 
-    /**
-     * @param calendarComponent $component
-     * @return calendarComponent
-     */
-    public function transform(calendarComponent $component): calendarComponent
+    public function transform(Event $event): Event
     {
         foreach ($this->properties as $property) {
-            $component->setProperty($property, preg_replace($this->pattern, $this->replacement, $component->getProperty($property)));
+            $event->setProperty($property, preg_replace($this->pattern, $this->replacement, $event->getProperty($property)));
         }
-        return $component;
+        return $event;
     }
 }

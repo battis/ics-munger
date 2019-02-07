@@ -4,7 +4,7 @@
 namespace Battis\IcsMunger\Filtered\Transformations;
 
 
-use kigkonsult\iCalcreator\calendarComponent;
+use Battis\IcsMunger\Calendar\Event;
 
 class Replace extends AbstractTransformation
 {
@@ -32,15 +32,11 @@ class Replace extends AbstractTransformation
         $this->replace = $replace;
     }
 
-    /**
-     * @param calendarComponent $component
-     * @return calendarComponent
-     */
-    public function transform(calendarComponent $component): calendarComponent
+    public function transform(Event $event): Event
     {
         foreach ($this->properties as $property) {
-            $component->setProperty($property, str_replace($this->search, $this->replace, $component->getProperty($property)));
+            $event->setProperty($property, str_replace($this->search, $this->replace, $event->getProperty($property)));
         }
-        return $component;
+        return $event;
     }
 }

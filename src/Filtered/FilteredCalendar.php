@@ -4,14 +4,14 @@
 namespace Battis\IcsMunger\Filtered;
 
 
-use Battis\IcsMunger\AbstractCalendar;
+use Battis\IcsMunger\Calendar\Calendar;
+use Battis\IcsMunger\Calendar\CalendarException;
 use Battis\IcsMunger\Filtered\Tests\AbstractTest;
 use Battis\IcsMunger\Filtered\Tests\BooleanOperators\AndOp;
 use Battis\IcsMunger\Filtered\Transformations\AbstractTransformation;
-use Exception;
-use kigkonsult\iCalcreator\vcalendar;
 
-class FilteredCalendar extends AbstractCalendar
+
+class FilteredCalendar extends Calendar
 {
     /**
      * @var AbstractTest;
@@ -25,10 +25,11 @@ class FilteredCalendar extends AbstractCalendar
 
     /**
      * FilteredCalendar constructor.
-     * @param AbstractCalendar|vcalendar|array|string $data
-     * @param AbstractTest|AbstractFilter[] $test
-     * @param AbstractTransformation|AbstractTransformation[] $transformation
-     * @throws Exception
+     * @param $data
+     * @param array $test
+     * @param array $transformation
+     * @throws FilteredCalendarException
+     * @throws CalendarException
      */
     public function __construct($data, $test = [], $transformation = [])
     {
@@ -39,48 +40,47 @@ class FilteredCalendar extends AbstractCalendar
         $this->apply();
     }
 
+    /**
+     * @throws CalendarException
+     */
     public function apply(): void
     {
         $this->applyTest();
         $this->applyTransformations();
     }
 
+    /**
+     * @throws CalendarException
+     */
     public function applyTest(): void
     {
-        /*
-         * TODO Why on earth doesn't this catch everything on the first pass?
-         */
-        do {
-            $deleted = 0;
-            while ($event = $this->data->getComponent('vevent')) {
-                $uid = $event->getProperty('uid');
-                if ($this->test->apply($event) === false) {
-                    $this->data->deleteComponent($uid);
-                    $deleted++;
-                }
+        $trash = [];
+        while ($event = $this->getEvent()) {
+            if ($this->test->apply($event) === false) {
+                array_push($trash, $event);
             }
-        } while ($deleted != 0);
-    }
-
-    public function applyTransformations(): void
-    {
-        if (!empty($this->transformations)) {
-            while ($event = $this->data->getComponent('vevent')) {
-                $uid = $event->getProperty('uid');
-                $transformed = clone $event;
-                foreach ($this->transformations as $transformation) {
-                    $transformed = $transformation->transform($transformed);
-                }
-                if ($transformed != $event) { // intentional non-strict comparison
-                    $this->data->setComponent($transformed, $uid);
-                }
-            }
+        }
+        foreach ($trash as $event) {
+            $this->deleteComponent($event->getUid());
         }
     }
 
     /**
-     * @return AbstractTest
+     * @throws CalendarException
      */
+    public function applyTransformations(): void
+    {
+        while ($event = $this->getEvent()) {
+            $transformed = clone $event;
+            foreach ($this->getTransformations() as $transformation) {
+                $transformed = $transformation->transform($transformed);
+            }
+            if ($event != $transformed) {
+                $this->setComponent($transformed, $event->getUid());
+            }
+        }
+    }
+
     public function getTest(): AbstractTest
     {
         return $this->test;
@@ -88,16 +88,16 @@ class FilteredCalendar extends AbstractCalendar
 
     /**
      * @param AbstractTest|AbstractTest[] $test
-     * @throws Exception
+     * @throws FilteredCalendarException
      */
     public function setTest($test): void
     {
         if ($test instanceof AbstractTest) {
             $this->test = $test;
         } elseif (is_array($test)) {
-            $this->test = new AndOp(...$test);
+            $this->test = AndOp::expr($test);
         } else {
-            throw new Exception('Expected AbstractTest or AbstractTest[], received ' . gettype($test));
+            throw new FilteredCalendarException('Expected AbstractTest or AbstractTest[], received ' . gettype($test));
         }
     }
 
@@ -111,7 +111,7 @@ class FilteredCalendar extends AbstractCalendar
 
     /**
      * @param AbstractTransformation|AbstractTransformation[] $transformation
-     * @throws Exception
+     * @throws FilteredCalendarException
      */
     public function setTransformations($transformation): void
     {
@@ -120,7 +120,7 @@ class FilteredCalendar extends AbstractCalendar
         } elseif (is_array($transformation)) {
             $this->transformations = $transformation;
         } else {
-            throw new Exception('Expected AbstractTransformation or AbstractTransformation[], received ' . gettype($transformation));
+            throw new FilteredCalendarException('Expected AbstractTransformation or AbstractTransformation[], received ' . gettype($transformation));
         }
     }
 }
