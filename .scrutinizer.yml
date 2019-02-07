@@ -8,3 +8,17 @@ tools:
     php_code_sniffer:
         config:
             standard: "PSR2"
+
+build:
+    nodes:
+        analysis:
+            tests:
+                override:
+                    - php-scrutinizer-run
+        tests-and-coverage:
+            tests:
+                override:
+                    - command: 'vendor/bin/phpunit --coverage-clover=coverage.clover'
+                      coverage:
+                          file: 'coverage.clover'
+                          format: 'clover'
