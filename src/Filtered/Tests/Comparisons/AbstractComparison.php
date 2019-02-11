@@ -40,5 +40,5 @@ abstract class AbstractComparison extends AbstractTest
      * @param string $property
      * @return bool
      */
-    protected abstract function comparison(string $property): bool;
+    abstract protected function comparison(string $property): bool;
 }
