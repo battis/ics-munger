@@ -4,9 +4,9 @@
 namespace Battis\IcsMunger\Filtered;
 
 
-use Battis\IcsMunger\IcsMungerException;
+use Battis\IcsMunger\Calendar\CalendarException;
 
-class FilteredCalendarException extends IcsMungerException
+class FilteredCalendarException extends CalendarException
 {
 
 }

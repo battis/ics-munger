@@ -7,7 +7,6 @@ namespace Battis\IcsMunger\RetainHistory;
 use Battis\IcsMunger\Calendar\AbstractPersistentCalendar;
 use Battis\IcsMunger\Calendar\Calendar;
 use Battis\IcsMunger\Calendar\CalendarException;
-use Battis\IcsMunger\IcsMungerException;
 use DateTime;
 use kigkonsult\iCalcreator\calendarComponent;
 use kigkonsult\iCalcreator\vcalendar;
@@ -34,12 +33,16 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
      * @param Calendar|vcalendar|array|string $data
      * @param PDO $db
      * @param string $name
-     * @throws IcsMungerException
+     * @throws RetainCalendarHistoryException
+     * @throws CalendarException
      */
     public function __construct($data, PDO $db = null, $name = null)
     {
-        if ($db == null && $data instanceof AbstractPersistentCalendar) {
+        if ($db === null && $data instanceof AbstractPersistentCalendar) {
             $db = $data->getDb();
+            if ($db === null) {
+                throw new RetainCalendarHistoryException('Cannot infer a database connection');
+            }
         }
         parent::__construct($data, $db);
         if ($name === null) {
@@ -47,7 +50,7 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
                 $name = $data->name;
             } elseif (empty($name = $this->getConfig('url'))) {
                 if (is_string($data) && empty($name = realpath($data))) {
-                    throw new IcsMungerException("Cannot uniquely identify calendar name implicitly");
+                    throw new RetainCalendarHistoryException('Cannot uniquely identify calendar name implicitly');
                 }
             }
         }
@@ -112,14 +115,14 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
 
     /**
      * @param string $name
-     * @throws IcsMungerException
+     * @throws RetainCalendarHistoryException
      */
     public function setName(string $name): void
     {
         if (strlen($name) > 0) {
             $this->name = $name;
         } else {
-            throw new IcsMungerException('Name must be non-zero length string');
+            throw new RetainCalendarHistoryException('Name must be non-zero length string');
         }
     }
 
