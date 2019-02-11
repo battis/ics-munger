@@ -25,6 +25,7 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^7",
+        "ext-xdebug": "*",
         "marcuspi/random-factor": "dev-master"
     },
     "scripts": {
