@@ -19,17 +19,15 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
     /**
      * @var int
      */
-    private $id;
+    private $id = null;
 
     /**
      * @var string
      */
-    private $name;
+    private $name = null;
 
-    /**
-     * @var bool
-     */
-    private $containsCachedData = false;
+    /** @var int */
+    private $sync = null;
 
     /**
      * CalendarWithHistory constructor.
@@ -62,59 +60,10 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
      */
     public function sync(): void
     {
-        if (!$this->containsCachedData) {
-            $priorSync = $this->getMostRecentSyncTimestamp();
-            $this->cacheData();
-            $this->restoreCachedData($priorSync);
-        }
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getMostRecentSyncTimestamp()
-    {
-        $statement = $this->prepare('SELECT * FROM `calendars` ORDER BY `modified` DESC LIMIT 1');
-        $statement->execute();
-        if ($row = $statement->fetch()) {
-            return $row['modified'];
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * @throws CalendarException
-     */
-    private function cacheData(): void
-    {
-        $select = $this->prepare('SELECT * FROM `events` WHERE `calendar` = :calendar AND `uid` = :uid');
-        $update = $this->prepare('UPDATE `events` SET `vevent` = :vevent WHERE `id` = :id');
-        $insert = $this->prepare('INSERT INTO `events` SET `calendar` = :calendar, `uid` = :uid, `vevent` = :vevent');
-
-        if (!$this->containsCachedData) {
-            $this->reset();
-            while ($vevent = $this->getEvent()) {
-                $uid = $vevent->getProperty('uid');
-                $text = $vevent->createComponent();
-                $select->execute([
-                    'calendar' => $this->getId(),
-                    'uid' => $uid
-                ]);
-                if ($row = $select->fetch()) {
-                    $update->execute([
-                        'id' => $row['id'],
-                        'vevent' => $text
-                    ]);
-                } else {
-                    $insert->execute([
-                        'calendar' => $this->getId(),
-                        'uid' => $uid,
-                        'vevent' => $text
-                    ]);
-                }
-            }
-        }
+        $priorSyncTimestamp = $this->getSyncedTimestamp();
+        $firstEventStart = $this->getFirstEventStart();
+        $this->cacheLiveEvents();
+        $this->recoverCachedEvents($priorSyncTimestamp, $firstEventStart);
     }
 
     public function getId(): int
@@ -122,49 +71,18 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
         if (empty($this->id)) {
             $statement = $this->prepare('INSERT INTO `calendars` SET `name` = :name ON DUPLICATE KEY UPDATE `id` = LAST_INSERT_ID(`id`), `modified` = CURRENT_TIMESTAMP');
             $statement->execute(['name' => $this->name]);
-            $this->id = $this->getDb()->lastInsertId();
+            $this->id = (int)$this->getDb()->lastInsertId();
         }
         return $this->id;
     }
 
     /**
-     * @param string|null $priorSyncTimestamp
+     * @return DateTime|false
      * @throws CalendarException
      */
-    private function restoreCachedData($priorSyncTimestamp): void
+    public function getFirstEventStart()
     {
-        if (!$this->containsCachedData && $priorSyncTimestamp != null) {
-
-            $cachedData = $this->prepare('SELECT * FROM `events` WHERE `calendar` = :calendar AND `MODIFIED` <= :modified');
-            $deleteCachedData = $this->prepare('DELETE FROM `events` WHERE `id` = :id');
-
-            $start = $this->getFirstEventStart();
-
-            $cachedData->execute([':calendar' => $this->getId(), ':modified' => $priorSyncTimestamp]);
-            while ($row = $cachedData->fetch()) {
-                $vevent = new vevent();
-                $vevent->parse($row['vevent']);
-                if (self::getStart($vevent) < $start) {
-                    if ($this->getComponent($row['uid'])) {
-                        $deleteCachedData->execute(['id' => $row['id']]);
-                    } else {
-                        $this->addComponent($vevent);
-                    }
-                } else {
-                    $deleteCachedData->execute(['id' => $row['id']]);
-                }
-            }
-            $this->containsCachedData = true;
-        }
-    }
-
-    /**
-     * @return DateTime
-     * @throws CalendarException
-     */
-    public function getFirstEventStart(): DateTime
-    {
-        $start = null;
+        $start = false;
         $this->reset();
         while ($vevent = $this->getEvent()) {
             $dtstart = self::getStart($vevent);
@@ -174,7 +92,11 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
         return $start;
     }
 
-    private static function getStart(calendarComponent $component): DateTime
+    /**
+     * @param calendarComponent $component
+     * @return DateTime|false
+     */
+    private static function getStart(calendarComponent $component)
     {
         $dtstart = $component->getProperty('dtstart');
         return DateTime::createFromFormat('Y-m-d', "{$dtstart['year']}-{$dtstart['month']}-{$dtstart['day']}");
@@ -199,5 +121,94 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
         } else {
             throw new IcsMungerException('Name must be non-zero length string');
         }
+    }
+
+    /**
+     * @return string|false
+     */
+    public function getSyncedTimestamp()
+    {
+        $statement = $this->prepare('
+            SELECT `syncs`.`id` as `sync`, `events`.`modified` as `timestamp`
+            FROM `events` LEFT JOIN `syncs`
+              ON `events`.`sync` = `syncs`.`id`
+            WHERE `syncs`.`calendar` = :calendar
+            ORDER BY `events`.`modified` DESC
+            LIMIT 1');
+        $statement->execute(['calendar' => $this->getId()]);
+        if ($row = $statement->fetch()) {
+            return $row['timestamp'];
+        }
+        return false;
+    }
+
+    /**
+     * @return int
+     */
+    protected function getSyncId(): int
+    {
+        if ($this->sync === null) {
+            $statement = $this->prepare('INSERT INTO `syncs` SET `calendar` = :calendar');
+            $statement->execute(['calendar' => $this->getId()]);
+            $this->sync = $this->getDb()->lastInsertId();
+        }
+        return $this->sync;
+    }
+
+    /**
+     * @return void
+     * @throws CalendarException
+     */
+    public function cacheLiveEvents(): void
+    {
+        $select = $this->prepare('SELECT * FROM `events` WHERE `calendar` = :calendar AND `uid` = :uid');
+        $update = $this->prepare('UPDATE `events` SET `vevent` = :vevent, `sync` = :sync WHERE `id` = :id');
+        $insert = $this->prepare('INSERT INTO `events` SET `calendar` = :calendar, `uid` = :uid, `vevent` = :vevent, `sync` = :sync');
+        $this->reset();
+        while ($e = $this->getEvent()) {
+            $select->execute([
+                'calendar' => $this->getId(),
+                'uid' => $e->getUid()
+            ]);
+            if ($cache = $select->fetch()) {
+                $update->execute([
+                    'vevent' => $e->createComponent(),
+                    'sync' => $this->getSyncId(),
+                    'id' => $cache['id']
+                ]);
+            } else {
+                $insert->execute([
+                    'calendar' => $this->getId(),
+                    'uid' => $e->getUid(),
+                    'vevent' => $e->createComponent(),
+                    'sync' => $this->getSyncId()
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param string $priorSyncTimestamp
+     * @param DateTime $firstEventStart
+     */
+    public function recoverCachedEvents(string $priorSyncTimestamp, DateTime $firstEventStart): void
+    {
+        $statement = $this->prepare('SELECT * FROM `events` WHERE `calendar` = :calendar AND `modified` <= :modified AND `sync` != :sync');
+        $delete = $this->prepare('DELETE FROM `events` WHERE `id` = :id');
+        $statement->execute([
+            'calendar' => $this->getId(),
+            'modified' => $priorSyncTimestamp,
+            'sync' => $this->getSyncId()
+        ]);
+        while ($cache = $statement->fetch()) {
+            $e = new vevent();
+            $e->parse($cache['vevent']);
+            if (self::getStart($e) < $firstEventStart) {
+                $this->addComponent($e);
+            } else {
+                $delete->execute(['id' => $cache['id']]);
+            }
+        }
+        $this->sync = null;
     }
 }

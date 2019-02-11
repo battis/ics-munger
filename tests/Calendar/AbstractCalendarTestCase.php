@@ -26,10 +26,11 @@ abstract class AbstractCalendarTestCase extends TestCase
         self::assertEquals($expected->countComponents(), $actual->countComponents());
         $expected->getComponent(null);
         while ($component = $expected->getComponent()) {
-            if ($component instanceof vevent) {
-                self::assertEventMatches($component, $actual->getComponent($component->getProperty('uid')));
+            $comparison = $actual->getComponent($component->getProperty('uid'));
+            if ($component instanceof vevent && $comparison instanceof vevent) {
+                self::assertEventMatches($component, $comparison);
             } else {
-                self::assertEquals($component->createComponent(), $actual->getComponent($component->getProperty('uid'))->createComponent());
+                self::assertEquals($component->createComponent(), $comparison->createComponent());
             }
         }
     }

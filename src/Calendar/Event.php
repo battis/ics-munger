@@ -27,7 +27,10 @@ class Event extends vevent
         }
     }
 
-    public function getStart(): DateTime
+    /**
+     * @return DateTime|false
+     */
+    public function getStart()
     {
         return DateTime::createFromFormat('Y-m-d', "{$this->dtstart['year']}-{$this->dtstart['month']}-{$this->dtstart['day']}");
     }

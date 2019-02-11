@@ -31,12 +31,20 @@ abstract class AbstractPersistentCalendar extends Calendar
         $this->db = $db;
     }
 
-    protected function prepare(string $statement): PDOStatement
+    /**
+     * @param string $statement
+     * @return PDOStatement|false
+     */
+    protected function prepare(string $statement)
     {
         return $this->db->prepare($statement);
     }
 
-    protected function query(string $statement): PDOStatement
+    /**
+     * @param string $statement
+     * @return PDOStatement|false
+     */
+    protected function query(string $statement)
     {
         return $this->db->query($statement);
     }

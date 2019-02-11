@@ -14,35 +14,36 @@ class Calendar extends vcalendar
      * @param vcalendar|string|array $data
      * @throws CalendarException
      */
-    public function __construct($data = [])
+    public function __construct($data)
     {
+        $config = [];
+        $parseText = false;
         if (is_string($data)) {
             if (strpos($data, '://', 1) !== false) {
-                $data = ['url' => $data];
-            }
-        }
-        if (is_array($data)) {
-            parent::__construct($data);
-            $this->parse();
-        } elseif (is_string($data)) {
-            if (realpath($data)) {
-                $this->parse(file_get_contents($data));
+                $config['url'] = $data;
+            } elseif (realpath($data)) {
+                $parseText = file_get_contents($data);
             } else {
-                $this->parse($data);
+                $parseText = $data;
             }
+
+        } elseif (is_array($data)) {
+            $config = $data;
         } elseif ($data instanceof vcalendar) {
             foreach ($data as $property => $value) {
                 $this->$property = $value;
             }
-            $this->parse();
+            return;
         } else {
-            throw new CalendarException('Instantiation requires a Calendar object, configuration array, a URL, a filepath, or iCalendar text data');
+            throw new CalendarException('Instantiation requires a Calendar object, configuration array, a URL, a filepath, or iCalendar text data, received ' . gettype($data) . ' instead');
         }
+        parent::__construct($config);
+        $this->parse($parseText);
     }
 
     public function reset(): void
     {
-        $this->getComponent(0);
+        unset($this->compix['INDEX']);
     }
 
     /**

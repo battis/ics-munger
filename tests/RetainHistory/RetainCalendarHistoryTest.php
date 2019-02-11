@@ -13,6 +13,19 @@ use Exception;
 
 class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
 {
+    const BASE = 'base';
+    const CALENDARS_TABLE = 'calendars';
+    const EVENTS_TABLE = 'events';
+
+    /**
+     * @param RetainCalendarHistory $c
+     * @throws Exception
+     */
+    private function instantiationTests(RetainCalendarHistory $c): void
+    {
+        self::assertCalendarMatches(self::getBaseCalendar(), $c);
+        self::assertCalendarCached($c);
+    }
 
     /**
      * @throws IcsMungerException
@@ -21,7 +34,7 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
     public function testInstantiationFromNullData(): void
     {
         $this->expectException(CalendarException::class);
-        $c = new RetainCalendarHistory(null, self::getDatabase(), __FUNCTION__);
+        new RetainCalendarHistory(null, self::getDatabase(), __FUNCTION__);
     }
 
     /**
@@ -31,7 +44,7 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
     public function testInstantiationFromInvalidData(): void
     {
         $this->expectException(CalendarException::class);
-        $c = new RetainCalendarHistory(123, self::getDatabase(), __FUNCTION__);
+        new RetainCalendarHistory(123, self::getDatabase(), __FUNCTION__);
     }
 
     /**
@@ -41,7 +54,7 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
     public function testInstantiationFromTextData(): void
     {
         $c = new RetainCalendarHistory(self::getBaseCalendarFileContents(), self::getDatabase(), __FUNCTION__);
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
+        $this->instantiationTests($c);
     }
 
     /**
@@ -50,8 +63,8 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
      */
     public function testInstantiationFromFilePath(): void
     {
-        $c = new RetainCalendarHistory(self::getCalendarFilePath('base'), self::getDatabase(), __FUNCTION__);
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
+        $c = new RetainCalendarHistory(self::getCalendarFilePath(self::BASE), self::getDatabase(), __FUNCTION__);
+        $this->instantiationTests($c);
     }
 
     /**
@@ -60,8 +73,8 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
      */
     public function testInstantiationFromUrl(): void
     {
-        $c = new RetainCalendarHistory(self::getCalendarUrl('base'), self::getDatabase(), __FUNCTION__);
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
+        $c = new RetainCalendarHistory(self::getCalendarUrl(self::BASE), self::getDatabase(), __FUNCTION__);
+        $this->instantiationTests($c);
     }
 
     /**
@@ -70,8 +83,12 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
      */
     public function testInstantiationFromVcalendar(): void
     {
-        $c = new RetainCalendarHistory(self::getBaseCalendar(), self::getDatabase(), __FUNCTION__);
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
+        $c = new RetainCalendarHistory(
+            self::getCalendarFilePath(self::BASE),
+            self::getDatabase(),
+            __FUNCTION__
+        );
+        $this->instantiationTests($c);
     }
 
     /**
@@ -80,9 +97,12 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
      */
     public function testInstantiationFromCalendar(): void
     {
-        $test = new TestCalendar(self::getBaseCalendar());
-        $c = new RetainCalendarHistory($test, self::getDatabase(), __FUNCTION__);
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
+        $c = new RetainCalendarHistory(
+            new TestCalendar(self::getCalendarFilePath(self::BASE)),
+            self::getDatabase(),
+            __FUNCTION__
+        );
+        $this->instantiationTests($c);
     }
 
     /**
@@ -91,18 +111,69 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
      */
     public function testInstantiationFromRetainCalendarHistoryWithoutDb(): void
     {
-        $test = new RetainCalendarHistory(self::getBaseCalendar(), self::getDatabase(), __FUNCTION__ . '-test');
-        $c = new RetainCalendarHistory($test);
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
+        $c = new RetainCalendarHistory(
+            new RetainCalendarHistory(
+                self::getCalendarFilePath(self::BASE),
+                self::getDatabase(),
+                __FUNCTION__
+            )
+        );
+        $this->instantiationTests($c);
+    }
+
+    /**
+     * @throws IcsMungerException
+     * @throws Exception
+     */
+    public function testOverlappingSnapshots(): void
+    {
+        for ($i = 0; $i < 3; $i++) {
+            $c = new RetainCalendarHistory(self::getCalendarFilePath("snapshot_$i"), self::getDatabase(), __FUNCTION__);
+            self::assertCalendarCached($c);
+        }
+        $this->instantiationTests($c);
     }
 
     protected function loadFixture()
     {
-        // TODO: Implement loadFixture() method.
     }
 
     protected function unloadFixture()
     {
-        // TODO: Implement unloadFixture() method.
+    }
+
+    /**
+     * @param RetainCalendarHistory $c
+     * @param string $message
+     * @throws CalendarException
+     * @throws Exception
+     */
+    public static function assertCalendarCached(RetainCalendarHistory $c, string $message = ''): void
+    {
+        self::assertRowExists(
+            [
+                'name' => $c->getName()
+            ],
+            self::CALENDARS_TABLE,
+            $message
+        );
+        $c->reset();
+        for ($count = 0; $e = $c->getEvent(); $count++) {
+            self::assertRowExists(
+                [
+                    'calendar' => $c->getId(),
+                    'uid' => $e->getUid(),
+                    'vevent' => $e->createComponent()
+                ],
+                self::EVENTS_TABLE,
+                $message
+            );
+        }
+        self::assertQueryRowCount(
+            $c->countComponents() - 1, // vtimezone not cached
+            'SELECT * FROM `events` WHERE `calendar` = :calendar',
+            ['calendar' => $c->getId()],
+            $message
+        );
     }
 }

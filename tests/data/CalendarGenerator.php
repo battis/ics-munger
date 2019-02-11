@@ -180,7 +180,7 @@ EOT;
     /**
      * @param int $count
      * @param float $overlapPercentage
-     * @return CalendarGenerator[]
+     * @return CalendarGenerator[][]
      * @throws Exception
      */
     public function snapshots(int $count, float $overlapPercentage = 0.9): array

@@ -95,7 +95,7 @@ abstract class AbstractPersistentCalendarTestCase extends AbstractCalendarTestCa
             self::loadSchema(
                 self::$databaseHandle,
                 $GLOBALS['DB_DBNAME'],
-                realpath(__DIR__ . "/../data")
+                realpath(__DIR__ . '/../../schema')
             );
         }
         return self::$databaseHandle;
