@@ -33,7 +33,7 @@ abstract class AbstractPersistentCalendar extends Calendar
 
     /**
      * @param string $statement
-     * @return PDOStatement|false
+     * @return PDOStatement|boolean
      */
     protected function prepare(string $statement)
     {
@@ -42,7 +42,7 @@ abstract class AbstractPersistentCalendar extends Calendar
 
     /**
      * @param string $statement
-     * @return PDOStatement|false
+     * @return PDOStatement|boolean
      */
     protected function query(string $statement)
     {

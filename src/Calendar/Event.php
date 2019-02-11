@@ -28,7 +28,7 @@ class Event extends vevent
     }
 
     /**
-     * @return DateTime|false
+     * @return DateTime|bool
      */
     public function getStart()
     {
@@ -36,7 +36,7 @@ class Event extends vevent
     }
 
     /**
-     * @return string|false
+     * @return string|bool
      */
     public function getUid()
     {

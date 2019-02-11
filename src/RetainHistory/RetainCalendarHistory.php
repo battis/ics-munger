@@ -77,7 +77,7 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
     }
 
     /**
-     * @return DateTime|false
+     * @return DateTime|boolean
      * @throws CalendarException
      */
     public function getFirstEventStart()
@@ -150,7 +150,7 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
         if ($this->sync === null) {
             $statement = $this->prepare('INSERT INTO `syncs` SET `calendar` = :calendar');
             $statement->execute(['calendar' => $this->getId()]);
-            $this->sync = $this->getDb()->lastInsertId();
+            $this->sync = (int)$this->getDb()->lastInsertId();
         }
         return $this->sync;
     }
@@ -188,25 +188,27 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
     }
 
     /**
-     * @param string $priorSyncTimestamp
-     * @param DateTime $firstEventStart
+     * @param string|bool $priorSyncTimestamp
+     * @param DateTime|bool $firstEventStart
      */
-    public function recoverCachedEvents(string $priorSyncTimestamp, DateTime $firstEventStart): void
+    public function recoverCachedEvents($priorSyncTimestamp = false, $firstEventStart = false): void
     {
-        $statement = $this->prepare('SELECT * FROM `events` WHERE `calendar` = :calendar AND `modified` <= :modified AND `sync` != :sync');
-        $delete = $this->prepare('DELETE FROM `events` WHERE `id` = :id');
-        $statement->execute([
-            'calendar' => $this->getId(),
-            'modified' => $priorSyncTimestamp,
-            'sync' => $this->getSyncId()
-        ]);
-        while ($cache = $statement->fetch()) {
-            $e = new vevent();
-            $e->parse($cache['vevent']);
-            if (self::getStart($e) < $firstEventStart) {
-                $this->addComponent($e);
-            } else {
-                $delete->execute(['id' => $cache['id']]);
+        if ($priorSyncTimestamp !== false && $firstEventStart !== false) {
+            $statement = $this->prepare('SELECT * FROM `events` WHERE `calendar` = :calendar AND `modified` <= :modified AND `sync` != :sync');
+            $delete = $this->prepare('DELETE FROM `events` WHERE `id` = :id');
+            $statement->execute([
+                'calendar' => $this->getId(),
+                'modified' => $priorSyncTimestamp,
+                'sync' => $this->getSyncId()
+            ]);
+            while ($cache = $statement->fetch()) {
+                $e = new vevent();
+                $e->parse($cache['vevent']);
+                if (self::getStart($e) < $firstEventStart) {
+                    $this->addComponent($e);
+                } else {
+                    $delete->execute(['id' => $cache['id']]);
+                }
             }
         }
         $this->sync = null;
