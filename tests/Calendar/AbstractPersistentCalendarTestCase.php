@@ -88,13 +88,12 @@ abstract class AbstractPersistentCalendarTestCase extends AbstractCalendarTestCa
     {
         if (self::$databaseHandle == null) {
             self::$databaseHandle = new PDO(
-                "mysql:host={$GLOBALS['DB_HOST']};port={$GLOBALS['DB_PORT']}",
+                "mysql:host={$GLOBALS['DB_HOST']};port={$GLOBALS['DB_PORT']};dbname={$GLOBALS['DB_DBNAME']}",
                 $GLOBALS['DB_USER'],
                 $GLOBALS['DB_PASSWORD']
             );
             self::loadSchema(
                 self::$databaseHandle,
-                $GLOBALS['DB_DBNAME'],
                 realpath(__DIR__ . '/../../schema')
             );
         }
@@ -103,15 +102,11 @@ abstract class AbstractPersistentCalendarTestCase extends AbstractCalendarTestCa
 
     /**
      * @param PDO $db
-     * @param string $dbname
      * @param string $schemaPath
      * @throws Exception
      */
-    private static function loadSchema(PDO $db, string $dbname, string $schemaPath): void
+    private static function loadSchema(PDO $db, string $schemaPath): void
     {
-        if (!$db->query("DROP DATABASE `$dbname`; CREATE DATABASE `$dbname`; USE `$dbname`")) {
-            throw new Exception('MySQL error ' . $db->errorCode() . ' dropping and creating database');
-        }
         foreach (scandir($schemaPath) as $filename) {
             $filepath = realpath($schemaPath . "/$filename");
             if (preg_match('/.*\.sql/', $filepath) && is_file($filepath)) {

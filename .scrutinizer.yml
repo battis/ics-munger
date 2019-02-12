@@ -5,6 +5,9 @@ checks:
     php: true
 
 build:
+    dependencies:
+        before:
+            - mysql -uroot -e 'CREATE DATABASE phpunit_icsmunger'
     nodes:
         analysis:
             tests:
