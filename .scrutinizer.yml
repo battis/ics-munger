@@ -12,6 +12,8 @@ build:
                     - php-scrutinizer-run
                     - phpcs-run
         tests-and-coverage:
+            services:
+                mysql: 5.7
             tests:
                 override:
                     - command: vendor/bin/phpunit --coverage-clover=coverage.clover

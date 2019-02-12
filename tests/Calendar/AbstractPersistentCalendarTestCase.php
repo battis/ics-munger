@@ -110,13 +110,13 @@ abstract class AbstractPersistentCalendarTestCase extends AbstractCalendarTestCa
     private static function loadSchema(PDO $db, string $dbname, string $schemaPath): void
     {
         if (!$db->query("DROP DATABASE `$dbname`; CREATE DATABASE `$dbname`; USE `$dbname`")) {
-            throw new Exception('MySQL error dropping and creating database', $db->errorCode());
+            throw new Exception('MySQL error ' . $db->errorCode() . 'dropping and creating database');
         }
         foreach (scandir($schemaPath) as $filename) {
             $filepath = realpath($schemaPath . "/$filename");
             if (preg_match('/.*\.sql/', $filepath) && is_file($filepath)) {
                 if (!$db->query(file_get_contents($filepath))) {
-                    throw new Exception("MySQL error on loading '$filepath'", $db->errorCode());
+                    throw new Exception("MySQL error " . $db->errorCode() . " on loading '$filepath'");
                 }
             }
         }

@@ -33,7 +33,6 @@ class Calendar extends vcalendar
             } else {
                 $parseText = $data;
             }
-
         } elseif (is_array($data)) {
             $config = $data;
         } elseif ($data instanceof vcalendar) {
@@ -89,7 +88,9 @@ class Calendar extends vcalendar
             }
         } else {
             $vevent = $this->getComponent('vevent');
-            if ($vevent) return new Event($vevent);
+            if ($vevent) {
+                return new Event($vevent);
+            }
         }
         return false;
     }

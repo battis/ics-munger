@@ -45,7 +45,8 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
                 throw new RetainCalendarHistoryException('Cannot infer a database connection');
             }
         }
-        parent::__construct($data, $db);
+        parent::__construct($data, /** @scrutinizer ignore-type */
+            $db);
         if ($name === null) {
             if ($data instanceof Calendar && isset($data->name)) {
                 $name = $data->name;
