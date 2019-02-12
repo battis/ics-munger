@@ -157,7 +157,6 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
             self::CALENDARS_TABLE,
             $message
         );
-        $c->reset();
         for ($count = 0; $e = $c->getEvent(); $count++) {
             self::assertRowExists(
                 [
