@@ -4,6 +4,7 @@ PRODID:-//Battis\IcsMunger\Tests\data\CalendarGenerator//NONSGML kigkonsult
  .se iCalcreator 2.24.2//
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
+X-FOO:BAR
 BEGIN:VTIMEZONE
 TZID:America/New_York
 X-LIC-LOCATION:America/New_York

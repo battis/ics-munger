@@ -8,6 +8,7 @@ use Battis\IcsMunger\Calendar\AbstractPersistentCalendar;
 use Battis\IcsMunger\Calendar\Calendar;
 use Battis\IcsMunger\Calendar\CalendarException;
 use DateTime;
+use Exception;
 use kigkonsult\iCalcreator\calendarComponent;
 use kigkonsult\iCalcreator\vcalendar;
 use kigkonsult\iCalcreator\vevent;
@@ -60,13 +61,15 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
 
     /**
      * @throws CalendarException
+     * @throws Exception
      */
     public function sync(): void
     {
         $priorSyncTimestamp = $this->getSyncedTimestamp();
-        $firstEventStart = $this->getFirstEventStart();
-        $this->cacheLiveEvents();
-        $this->recoverCachedEvents($priorSyncTimestamp, $firstEventStart);
+        if ($firstEventStart = $this->getFirstEventStart()) {
+            $this->cacheLiveEvents();
+            $this->recoverCachedEvents($priorSyncTimestamp, $firstEventStart);
+        }
     }
 
     public function getId(): int
@@ -81,18 +84,17 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
 
     /**
      * @return DateTime|boolean
-     * @throws CalendarException
+     * @throws Exception
      */
     public function getFirstEventStart()
     {
-        $start = false;
-        $this->reset();
-        while ($vevent = $this->getEvent()) {
-            $dtstart = self::getStart($vevent);
-            if ($start === null) $start = $dtstart;
-            elseif ($dtstart < $start) $start = $dtstart;
+        $starts = $this->getProperty('dtstart');
+        if (is_array($starts)) {
+            $dates = array_keys($starts);
+            sort($dates);
+            return new DateTime((string)$dates[0]);
         }
-        return $start;
+        return false;
     }
 
     /**
@@ -167,7 +169,6 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
         $select = $this->prepare('SELECT * FROM `events` WHERE `calendar` = :calendar AND `uid` = :uid');
         $update = $this->prepare('UPDATE `events` SET `vevent` = :vevent, `sync` = :sync WHERE `id` = :id');
         $insert = $this->prepare('INSERT INTO `events` SET `calendar` = :calendar, `uid` = :uid, `vevent` = :vevent, `sync` = :sync');
-        $this->reset();
         while ($e = $this->getEvent()) {
             $select->execute([
                 'calendar' => $this->getId(),

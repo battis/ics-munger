@@ -27,16 +27,15 @@ class FilteredCalendar extends Calendar
      * FilteredCalendar constructor.
      * @param $data
      * @param array $test
-     * @param array $transformation
+     * @param array $transformations
      * @throws FilteredCalendarException
      * @throws CalendarException
      */
-    public function __construct($data, $test = [], $transformation = [])
+    public function __construct($data, $test = [], $transformations = [])
     {
         parent::__construct($data);
         $this->setTest($test);
-        $this->setTransformations($transformation);
-
+        $this->setTransformations($transformations);
         $this->apply();
     }
 

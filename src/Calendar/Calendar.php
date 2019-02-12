@@ -9,6 +9,13 @@ use kigkonsult\iCalcreator\vevent;
 
 class Calendar extends vcalendar
 {
+    const PRODUCT_IDENTIFIER = 'prodid';
+    const VERSION = 'version';
+    const CALENDAR_SCALE = 'calscale';
+    const MIME_METHOD = 'method';
+    const X_PROPERTY_NAME = 0;
+    const X_PROPERTY_VALUE = 1;
+
     /**
      * Calendar constructor.
      * @param vcalendar|string|array $data
@@ -30,9 +37,8 @@ class Calendar extends vcalendar
         } elseif (is_array($data)) {
             $config = $data;
         } elseif ($data instanceof vcalendar) {
-            foreach ($data as $property => $value) {
-                $this->$property = $value;
-            }
+            parent::__construct();
+            $this->copy($data);
             return;
         } else {
             throw new CalendarException('Instantiation requires a Calendar object, configuration array, a URL, a filepath, or iCalendar text data, received ' . gettype($data) . ' instead');
@@ -41,9 +47,32 @@ class Calendar extends vcalendar
         $this->parse($parseText);
     }
 
-    public function reset(): void
+    /**
+     * @param vcalendar $data
+     */
+    private function copy(vcalendar $data): void
     {
-        unset($this->compix['INDEX']);
+        // required properties
+        $this->setProperty(self::PRODUCT_IDENTIFIER, $data->getProperty(self::PRODUCT_IDENTIFIER));
+        $this->setProperty(self::VERSION, $data->getProperty(self::VERSION));
+
+        // optional properties
+        if ($calscale = $data->getProperty(self::CALENDAR_SCALE)) {
+            $this->setProperty(self::CALENDAR_SCALE, $calscale);
+        }
+        if ($method = $data->getProperty(self::MIME_METHOD)) {
+            $this->setProperty(self::MIME_METHOD, $method);
+        }
+
+        // X-properties and IANA-properties
+        while ($xprop = $data->getProperty()) {
+            $this->setProperty($xprop[self::X_PROPERTY_NAME], $xprop[self::X_PROPERTY_VALUE]);
+        }
+
+        // components
+        while ($component = $data->getComponent()) {
+            $this->addComponent($component);
+        }
     }
 
     /**
