@@ -6,7 +6,7 @@ use kigkonsult\iCalcreator\vevent;
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 try {
-    $base = new CalendarGenerator();
+    $base = new CalendarGenerator(new DateTime('-5 years'), new DateTime('+5 years'), 200);
     $base->setCalendarDirectory(__DIR__ . DIRECTORY_SEPARATOR . 'calendars');
     $base->emptyCalendarDirectory();
     $base->save('base');

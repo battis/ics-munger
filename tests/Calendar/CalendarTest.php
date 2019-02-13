@@ -17,7 +17,7 @@ class CalendarTest extends AbstractCalendarTestCase
     public function testInstantiationFromNullData(): void
     {
         self::expectException(CalendarException::class);
-        $c = new Calendar(null);
+        new Calendar(null);
     }
 
     /**
@@ -26,7 +26,7 @@ class CalendarTest extends AbstractCalendarTestCase
     public function testInstantiationFromInvalidData(): void
     {
         self::expectException(CalendarException::class);
-        $c = new Calendar(123);
+        new Calendar(123);
     }
 
     /**

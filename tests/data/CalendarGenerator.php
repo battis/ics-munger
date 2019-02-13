@@ -13,6 +13,7 @@ use kigkonsult\iCalcreator\vtimezone;
 
 class CalendarGenerator
 {
+    const DEFAULT_EVENT_COUNT = 1000;
     const START_RELATIVE = '-5 years';
     const END_RELATIVE = '+5 years';
 
@@ -74,7 +75,7 @@ EOT;
      * @param int $eventCount
      * @throws Exception
      */
-    public function __construct(DateTime $start = null, DateTime $end = null, int $eventCount = 1000)
+    public function __construct(DateTime $start = null, DateTime $end = null, int $eventCount = self::DEFAULT_EVENT_COUNT)
     {
         $this->base = self::getEmptyCalendar();
         if ($start === null) $start = new DateTime('-5 years');

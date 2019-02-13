@@ -23,16 +23,15 @@ abstract class AbstractCalendarTestCase extends TestCase
 
     public static function assertCalendarMatches(vcalendar $expected, vcalendar $actual, string $message = ''): void
     {
-        self::assertEquals($expected->countComponents(), $actual->countComponents());
-        $expected->getComponent(null);
         while ($component = $expected->getComponent()) {
             $comparison = $actual->getComponent($component->getProperty('uid'));
             if ($component instanceof vevent && $comparison instanceof vevent) {
-                self::assertEventMatches($component, $comparison);
+                self::assertEventMatches($component, $comparison, $message);
             } else {
                 self::assertEquals($component->createComponent(), $comparison->createComponent());
             }
         }
+        self::assertEquals($expected->countComponents(), $actual->countComponents(), $message);
     }
 
     public static function assertEventMatches(vevent $expected, vevent $actual, string $message = ''): void
@@ -44,7 +43,7 @@ abstract class AbstractCalendarTestCase extends TestCase
                      'dtstart',
                      'dtend'
                  ] as $property) {
-            self::assertEquals($expected->getProperty($property), $actual->getProperty($property));
+            self::assertEquals($expected->getProperty($property), $actual->getProperty($property), $message);
         }
     }
 
