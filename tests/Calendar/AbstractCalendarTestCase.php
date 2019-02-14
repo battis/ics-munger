@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 abstract class AbstractCalendarTestCase extends TestCase
 {
+    const BASE = 'base';
     const BASE_FILEPATH = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'data';
     const BASE_URL = 'https://raw.githubusercontent.com/battis/ics-munger/master/tests/data';
     /**
@@ -96,18 +97,4 @@ abstract class AbstractCalendarTestCase extends TestCase
     {
         return self::BASE_URL . "/$filename";
     }
-
-    abstract public function testInstantiationFromNullData(): void;
-
-    abstract public function testInstantiationFromInvalidData(): void;
-
-    abstract public function testInstantiationFromTextData(): void;
-
-    abstract public function testInstantiationFromFilePath(): void;
-
-    abstract public function testInstantiationFromUrl(): void;
-
-    abstract public function testInstantiationFromVcalendar(): void;
-
-    abstract public function testInstantiationFromCalendar(): void;
 }

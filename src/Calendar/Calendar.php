@@ -69,6 +69,7 @@ class Calendar extends vcalendar
         }
 
         // components
+        unset($data->compix); // reset component index
         while ($component = $data->getComponent()) {
             $this->addComponent($component);
         }

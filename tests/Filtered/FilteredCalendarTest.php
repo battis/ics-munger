@@ -17,11 +17,9 @@ use Battis\IcsMunger\Filtered\Tests\Comparisons\LessThan;
 use Battis\IcsMunger\Filtered\Tests\Comparisons\Like;
 use Battis\IcsMunger\Tests\Calendar\AbstractCalendarTestCase;
 use Battis\IcsMunger\Tests\TestCalendar;
-use kigkonsult\iCalcreator\vcalendar;
 
 class FilteredCalendarTest extends AbstractCalendarTestCase
 {
-    const BASE = 'base';
     const SUMMARY = 'summary';
     const CALENDAR = 'calendar';
     const KEYWORD = 'keyword';
@@ -80,53 +78,47 @@ class FilteredCalendarTest extends AbstractCalendarTestCase
      * @throws CalendarException
      * @throws FilteredCalendarException
      */
-    public function testInstantiationFromTextData(): void
+    public function testInstantiation(): void
     {
-        $c = new FilteredCalendar(self::getBaseCalendarFileContents());
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
-    }
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new FilteredCalendar(self::getBaseCalendarFileContents()),
+            'Instantiation from text data'
+        );
 
-    /**
-     * @throws CalendarException
-     * @throws FilteredCalendarException
-     */
-    public function testInstantiationFromFilePath(): void
-    {
-        $c = new FilteredCalendar(self::getCalendarFilePath(self::BASE));
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
-    }
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new FilteredCalendar(self::getCalendarFilePath(self::BASE)),
+            'Instantiation from file path'
+        );
 
-    /**
-     * @throws CalendarException
-     * @throws FilteredCalendarException
-     */
-    public function testInstantiationFromUrl(): void
-    {
-        $c = new FilteredCalendar(self::getCalendarUrl(self::BASE));
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
-    }
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new FilteredCalendar(self::getCalendarUrl(self::BASE)),
+            'Instantiation from URL'
+        );
 
-    /**
-     * @throws CalendarException
-     * @throws FilteredCalendarException
-     */
-    public function testInstantiationFromVcalendar(): void
-    {
-        $vcalendar = new vcalendar();
-        $vcalendar->parse(self::getBaseCalendarFileContents());
-        $c = new FilteredCalendar($vcalendar);
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
-    }
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new FilteredCalendar([
+                'unique_id' => __CLASS__,
+                'url' => self::getCalendarUrl(self::BASE)
+            ]),
+            'Instantiation from configuration array'
+        );
 
-    /**
-     * @throws CalendarException
-     * @throws FilteredCalendarException
-     */
-    public function testInstantiationFromCalendar(): void
-    {
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new FilteredCalendar(self::getBaseCalendar()),
+            'Instantiation from vcalendar instance'
+        );
+
         $test = new TestCalendar(self::getBaseCalendarFileContents());
-        $c = new FilteredCalendar($test);
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new FilteredCalendar($test),
+            'Instantiation from Calendar instance'
+        );
     }
 
     /**
@@ -138,11 +130,24 @@ class FilteredCalendarTest extends AbstractCalendarTestCase
         foreach (['Contains', 'Equals', 'GreaterThan', 'GreaterThanOrEquals', 'LessThan', 'LessThanOrEquals'] as $comparison) {
             $params = self::getFilteredCalendar($comparison);
             $class = "Battis\\IcsMunger\\Filtered\\Tests\\Comparisons\\$comparison";
-            $c = new FilteredCalendar(
-                self::getCalendarFilePath(self::BASE),
-                new $class(self::SUMMARY, $params[self::KEYWORD]));
-            self::assertCalendarMatches(self::getCalendar($params[self::CALENDAR]), $c);
+            self::assertCalendarMatches(
+                self::getCalendar($params[self::CALENDAR]),
+                new FilteredCalendar(
+                    self::getCalendarFilePath(self::BASE),
+                    new $class(self::SUMMARY, $params[self::KEYWORD])
+                ),
+                "$comparison filter"
+            );
         }
+
+        self::assertCalendarMatches(
+            self::getCalendar('silly_aunt_sally'),
+            new FilteredCalendar(
+                self::getCalendarFilePath(self::BASE),
+                new Like(self::SUMMARY, '/([a-z])\\1/i')
+            ),
+            'Like filter'
+        );
     }
 
     /**
@@ -194,16 +199,5 @@ class FilteredCalendarTest extends AbstractCalendarTestCase
             NotOp::expr(Equals::expr(self::SUMMARY, $params[self::KEYWORD_A]))
         );
         self::assertCalendarMatches(self::getCalendar($params[self::CALENDAR]), $c);
-    }
-
-    /**
-     * @throws CalendarException
-     * @throws FilteredCalendarException
-     * @throws FilterException
-     */
-    public function testLikeFilter(): void
-    {
-        $c = new FilteredCalendar(self::getCalendarFilePath(self::BASE), new Like(self::SUMMARY, '/([a-z])\\1/i'));
-        self::assertCalendarMatches(self::getCalendar('silly_aunt_sally'), $c);
     }
 }

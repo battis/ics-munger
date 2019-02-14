@@ -89,6 +89,7 @@ EOT;
         $c = new vcalendar(['unique_id' => __CLASS__]);
         $c->setCalscale('GREGORIAN');
         $c->setMethod('PUBLISH');
+        $c->setProperty('X-WR-CALNAME', 'ICS Munger Test Calenadar');
         $tz = new vtimezone();
         $tz->parse(self::$US_EASTERN_TIMEZONE);
         $c->addComponent($tz);

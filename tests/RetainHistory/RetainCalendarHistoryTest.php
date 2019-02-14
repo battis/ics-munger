@@ -13,18 +13,29 @@ use Exception;
 
 class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
 {
-    const BASE = 'base';
     const CALENDARS_TABLE = 'calendars';
     const EVENTS_TABLE = 'events';
+    const SYNCS_TABLE = 'syncs';
+
+    /**
+     * @throws Exception
+     */
+    public function setUp()
+    {
+        parent::setUp();
+        self::getDatabase()->query('TRUNCATE TABLE `calendars`');
+        self::getDatabase()->query('TRUNCATE TABLE `events`');
+        self::getDatabase()->query('TRUNCATE TABLE `syncs');
+    }
 
     /**
      * @param RetainCalendarHistory $c
      * @throws Exception
      */
-    private function instantiationTests(RetainCalendarHistory $c): void
+    private function instantiationTests(RetainCalendarHistory $c, string $message = ''): void
     {
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
-        self::assertCalendarCached($c);
+        self::assertCalendarMatches(self::getBaseCalendar(), $c, $message);
+        self::assertCalendarCached($c, $message);
     }
 
     /**
@@ -51,74 +62,75 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
      * @throws IcsMungerException
      * @throws Exception
      */
-    public function testInstantiationFromTextData(): void
+    public function testInstantiation(): void
     {
-        $c = new RetainCalendarHistory(self::getBaseCalendarFileContents(), self::getDatabase(), __FUNCTION__);
-        $this->instantiationTests($c);
-    }
-
-    /**
-     * @throws IcsMungerException
-     * @throws Exception
-     */
-    public function testInstantiationFromFilePath(): void
-    {
-        $c = new RetainCalendarHistory(self::getCalendarFilePath(self::BASE), self::getDatabase(), __FUNCTION__);
-        $this->instantiationTests($c);
-    }
-
-    /**
-     * @throws IcsMungerException
-     * @throws Exception
-     */
-    public function testInstantiationFromUrl(): void
-    {
-        $c = new RetainCalendarHistory(self::getCalendarUrl(self::BASE), self::getDatabase(), __FUNCTION__);
-        $this->instantiationTests($c);
-    }
-
-    /**
-     * @throws IcsMungerException
-     * @throws Exception
-     */
-    public function testInstantiationFromVcalendar(): void
-    {
-        $c = new RetainCalendarHistory(
-            self::getCalendarFilePath(self::BASE),
-            self::getDatabase(),
-            __FUNCTION__
+        $this->instantiationTests(
+            new RetainCalendarHistory(
+                self::getBaseCalendarFileContents(),
+                self::getDatabase(),
+                "Text data"
+            ),
+            'Instantiation from text data'
         );
-        $this->instantiationTests($c);
-    }
 
-    /**
-     * @throws IcsMungerException
-     * @throws Exception
-     */
-    public function testInstantiationFromCalendar(): void
-    {
-        $c = new RetainCalendarHistory(
-            new TestCalendar(self::getCalendarFilePath(self::BASE)),
-            self::getDatabase(),
-            __FUNCTION__
-        );
-        $this->instantiationTests($c);
-    }
-
-    /**
-     * @throws IcsMungerException
-     * @throws Exception
-     */
-    public function testInstantiationFromRetainCalendarHistoryWithoutDb(): void
-    {
-        $c = new RetainCalendarHistory(
+        $this->instantiationTests(
             new RetainCalendarHistory(
                 self::getCalendarFilePath(self::BASE),
                 self::getDatabase(),
-                __FUNCTION__
-            )
+                "File path"
+            ),
+            'Instantiation from file path'
         );
-        $this->instantiationTests($c);
+
+        $this->instantiationTests(
+            new RetainCalendarHistory(
+                self::getCalendarUrl(self::BASE),
+                self::getDatabase(),
+                'URL'
+            ),
+            'Instantiation from URL'
+        );
+
+        $this->instantiationTests(
+            new RetainCalendarHistory(
+                [
+                    'unique_id' => __CLASS__,
+                    'url' => self::getCalendarUrl(self::BASE)
+                ],
+                self::getDatabase(),
+                'Configuration array'
+            ),
+            'Instantiation from configuration array'
+        );
+
+        $this->instantiationTests(
+            new RetainCalendarHistory(
+                self::getBaseCalendar(),
+                self::getDatabase(),
+                'vcalendar'
+            ),
+            'Instantiation from vcalendar instance'
+        );
+
+        $this->instantiationTests(
+            new RetainCalendarHistory(
+                new TestCalendar(self::getCalendarFilePath(self::BASE)),
+                self::getDatabase(),
+                'Calendar'
+            ),
+            'Instantiation from Calendar instance'
+        );
+
+        $this->instantiationTests(
+            new RetainCalendarHistory(
+                new RetainCalendarHistory(
+                    self::getCalendarFilePath(self::BASE),
+                    self::getDatabase(),
+                    'RetainCalendarHistory without database'
+                )
+            ),
+            'Instantiation from RetainCalendarHistory instance'
+        );
     }
 
     /**

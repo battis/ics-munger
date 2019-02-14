@@ -7,11 +7,10 @@ namespace Battis\IcsMunger\RetainHistory;
 use Battis\IcsMunger\Calendar\AbstractPersistentCalendar;
 use Battis\IcsMunger\Calendar\Calendar;
 use Battis\IcsMunger\Calendar\CalendarException;
+use Battis\IcsMunger\Calendar\Event;
 use DateTime;
 use Exception;
-use kigkonsult\iCalcreator\calendarComponent;
 use kigkonsult\iCalcreator\vcalendar;
-use kigkonsult\iCalcreator\vevent;
 use PDO;
 
 class RetainCalendarHistory extends AbstractPersistentCalendar
@@ -92,20 +91,12 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
         $starts = $this->getProperty('dtstart');
         if (is_array($starts)) {
             $dates = array_keys($starts);
-            sort($dates);
-            return new DateTime((string)$dates[0]);
+            if (count($dates)) {
+                sort($dates);
+                return new DateTime((string)$dates[0]);
+            }
         }
         return false;
-    }
-
-    /**
-     * @param calendarComponent $component
-     * @return DateTime|false
-     */
-    private static function getStart(calendarComponent $component)
-    {
-        $dtstart = $component->getProperty('dtstart');
-        return DateTime::createFromFormat('Y-m-d', "{$dtstart['year']}-{$dtstart['month']}-{$dtstart['day']}");
     }
 
     /**
@@ -195,6 +186,7 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
     /**
      * @param string|bool $priorSyncTimestamp
      * @param DateTime|bool $firstEventStart
+     * @throws CalendarException
      */
     public function recoverCachedEvents($priorSyncTimestamp = false, $firstEventStart = false): void
     {
@@ -207,9 +199,9 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
                 'sync' => $this->getSyncId()
             ]);
             while ($cache = $statement->fetch()) {
-                $e = new vevent();
+                $e = new Event();
                 $e->parse($cache['vevent']);
-                if (self::getStart($e) < $firstEventStart) {
+                if ($e->getStart() < $firstEventStart) {
                     $this->addComponent($e);
                 } else {
                     $delete->execute(['id' => $cache['id']]);

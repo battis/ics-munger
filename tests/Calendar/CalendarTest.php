@@ -6,17 +6,67 @@ namespace Battis\IcsMunger\Tests;
 
 use Battis\IcsMunger\Calendar\Calendar;
 use Battis\IcsMunger\Calendar\CalendarException;
+use Battis\IcsMunger\Calendar\Event;
 use Battis\IcsMunger\Tests\Calendar\AbstractCalendarTestCase;
-use kigkonsult\iCalcreator\vcalendar;
+use Exception;
 
 class CalendarTest extends AbstractCalendarTestCase
 {
     /**
      * @throws CalendarException
+     * @throws Exception
      */
-    public function testInstantiationFromNullData(): void
+    public function testInstantiation(): Calendar
     {
-        self::expectException(CalendarException::class);
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new Calendar(self::getBaseCalendarFileContents()),
+            'Instantiation from text data'
+        );
+
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new Calendar(self::getCalendarFilePath(self::BASE)),
+            'Instantiation from file path'
+        );
+
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new Calendar(self::getCalendarUrl(self::BASE)),
+            'Instantiation from URL'
+        );
+
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new Calendar([
+                'unique_id' => __CLASS__,
+                'url' => self::getCalendarUrl(self::BASE)
+            ]),
+            'Instantiation from configuration array'
+        );
+
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new Calendar(self::getBaseCalendar()),
+            'Instantiation from vcalendar instance'
+        );
+
+        $test = new TestCalendar(self::getBaseCalendarFileContents());
+        self::assertCalendarMatches(
+            self::getBaseCalendar(),
+            new Calendar($test),
+            'Instantiation from Calendar instance'
+        );
+
+        return $test;
+    }
+
+    /**
+     * @throws CalendarException
+     */
+    public function testInstantiationFromNull(): void
+    {
+        $this->expectException(CalendarException::class);
         new Calendar(null);
     }
 
@@ -25,55 +75,25 @@ class CalendarTest extends AbstractCalendarTestCase
      */
     public function testInstantiationFromInvalidData(): void
     {
-        self::expectException(CalendarException::class);
+        $this->expectException(CalendarException::class);
         new Calendar(123);
     }
 
     /**
+     * @param Calendar $calendar
+     * @depends testInstantiation
      * @throws CalendarException
      */
-    public function testInstantiationFromTextData(): void
+    public function testGetEvent(Calendar $calendar): void
     {
-        $c = new Calendar(self::getBaseCalendarFileContents());
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
-    }
-
-    /**
-     * @throws CalendarException
-     */
-    public function testInstantiationFromFilePath(): void
-    {
-        $c = new Calendar(self::getCalendarFilePath('base'));
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
-    }
-
-    /**
-     * @throws CalendarException
-     */
-    public function testInstantiationFromUrl(): void
-    {
-        $c = new Calendar(self::getCalendarUrl('base'));
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
-    }
-
-    /**
-     * @throws CalendarException
-     */
-    public function testInstantiationFromVcalendar(): void
-    {
-        $vcalendar = new vcalendar();
-        $vcalendar->parse(self::getBaseCalendarFileContents());
-        $c = new Calendar($vcalendar);
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
-    }
-
-    /**
-     * @throws CalendarException
-     */
-    public function testInstantiationFromCalendar(): void
-    {
-        $test = new TestCalendar(self::getBaseCalendarFileContents());
-        $c = new Calendar($test);
-        self::assertCalendarMatches(self::getBaseCalendar(), $c);
+        $uid = [];
+        while ($event = $calendar->getEvent()) {
+            self::assertInstanceOf(Event::class, $event);
+            array_push($uid, $event->getUid());
+        }
+        self::assertNotEmpty($uid);
+        self::assertInstanceOf(Event::class, $calendar->getEvent($uid[rand(0, count($uid) - 1)]));
+        self::assertFalse(array_search(__FUNCTION__, $uid));
+        self::assertFalse($calendar->getEvent(__FUNCTION__));
     }
 }
