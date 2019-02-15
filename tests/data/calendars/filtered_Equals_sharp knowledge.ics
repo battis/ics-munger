@@ -24,12 +24,14 @@ TZNAME:Eastern Daylight Time
 END:DAYLIGHT
 END:VTIMEZONE
 BEGIN:VEVENT
-UID:20190214T021433UTC-019514c2cb@Battis\IcsMunger\Tests\data\CalendarGener
+UID:20190215T142359UTC-463885c23b@Battis\IcsMunger\Tests\data\CalendarGener
  ator
-DTSTAMP:20190214T021433Z
-DESCRIPTION:leading security
-DTSTART:20160930T193618
-DURATION:PT0H4M0S
-SUMMARY:individual volume
+DTSTAMP:20190215T142359Z
+DESCRIPTION:nisl tellus morbi elit augue litora maecenas fames aliquet conu
+ bia sem faucibus commodo risus eleifend lacus malesuada velit ad enim torq
+ uent pharetra praesent purus penatibus sapien platea hac etiam nostra
+DTSTART:20140730T110005
+DURATION:PT2H15M0S
+SUMMARY:sharp knowledge
 END:VEVENT
 END:VCALENDAR

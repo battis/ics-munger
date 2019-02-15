@@ -4,9 +4,13 @@
 namespace Battis\IcsMunger\Tests\data;
 
 
+use BlogArticleFaker\FakerProvider as BlogArticleFakerProvider;
 use DateInterval;
 use DateTime;
 use Exception;
+use Faker\Factory;
+use Faker\Generator;
+use joshtronic\LoremIpsum;
 use kigkonsult\iCalcreator\vcalendar;
 use kigkonsult\iCalcreator\vevent;
 use kigkonsult\iCalcreator\vtimezone;
@@ -38,50 +42,49 @@ END:DAYLIGHT
 END:VTIMEZONE
 EOT;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     private static $calendarDirectory = null;
 
-    /**
-     * @var vcalendar
-     */
+    /** @var LoremIpsum */
+    private static $loremIpsum = null;
+
+    private static $faker = null;
+
+    /** @var vcalendar */
     private $base;
 
-    /**
-     * @var DateTime
-     */
+    /** @var DateTime */
     private $start;
 
-    /**
-     * @var DateTime
-     */
+    /** @var DateTime */
     private $end;
 
-    /**
-     * @var string[]
-     */
+    /** @var string[] */
     private $summaries = [];
 
-    /**
-     * @var string[]
-     */
+    /** @var string[] */
     private $descriptions = [];
 
     /**
      * CalendarGenerator constructor.
-     * @param DateTime|null $start
+     * @param DateTime|null|string $start
      * @param DateTime|null $end
      * @param int $eventCount
      * @throws Exception
      */
-    public function __construct(DateTime $start = null, DateTime $end = null, int $eventCount = self::DEFAULT_EVENT_COUNT)
+    public function __construct($start = null, DateTime $end = null, int $eventCount = self::DEFAULT_EVENT_COUNT)
     {
-        $this->base = self::getEmptyCalendar();
-        if ($start === null) $start = new DateTime('-5 years');
-        if ($end === null) $end = new DateTime('+5 years');
-        if ($eventCount < 0) $eventCount = 0;
-        $this->generateRandomEvents($start, $end, $eventCount);
+        if (is_string($start) && realpath($start)) {
+            $this->base = new vcalendar();
+            $this->base->parse(file_get_contents(realpath($start)));
+            // FIXME set start and end fields
+        } else {
+            $this->base = self::getEmptyCalendar();
+            if ($start === null) $start = new DateTime('-5 years');
+            if ($end === null) $end = new DateTime('+5 years');
+            if ($eventCount < 0) $eventCount = 0;
+            $this->generateRandomEvents($start, $end, $eventCount);
+        }
     }
 
     private static function getEmptyCalendar(): vcalendar
@@ -96,6 +99,79 @@ EOT;
         return $c;
     }
 
+    private function generateRandomSummary(): string
+    {
+        $result = random_factor();
+        array_push($this->summaries, $result);
+        return $result;
+    }
+
+    private static function getLoremIpsum(): LoremIpsum
+    {
+        if (self::$loremIpsum === null) {
+            self::$loremIpsum = new LoremIpsum();
+        }
+        return self::$loremIpsum;
+    }
+
+    private static function getFaker(): Generator
+    {
+        if (self::$faker === null) {
+            self::$faker = Factory::create();
+            self::$faker->addProvider(new BlogArticleFakerProvider(self::$faker));
+        }
+        return self::$faker;
+    }
+
+    private function generateRandomDescription(): string
+    {
+        $result = '';
+        switch (rand(1, 5)) {
+            case 1:
+            case 2:
+            case 3: // plaintext
+                $result = self::getLoremIpsum()->words(rand(20, 100));
+                break;
+            case 4: // html
+                switch (rand(1, 4)) {
+                    case 1: // tagged paragraphs
+                        $result = self::getLoremIpsum()->paragraphs(rand(1, 3), 'p');
+                        break;
+                    case 2: // unordered list
+                        $result = '<ul>' . self::getLoremIpsum()->words(rand(3, 10), '<li>$1</li>') . '</ul>';
+                        break;
+                    case 3: // ordered list of links
+                        $result = '<ol>' . self::getLoremIpsum()->words(rand(3, 10), '<li><a href="$1">$1</a></li>') . '</ol>';
+                        break;
+                    case 4: // Wordpress-style markup (no p tags, but double line breaks and formatting)
+                        $text = self::getLoremIpsum()->paragraphs(rand(1, 3));
+                        $paragraphs = explode("\n", $text);
+                        foreach ($paragraphs as $i => $paragraph) {
+                            $words = explode(' ', $paragraph);
+                            foreach ($words as $j => $word) {
+                                switch (rand(1, 10)) {
+                                    case 3:
+                                        $words[$j] = "<b>$word</b>";
+                                        break;
+                                    case 7:
+                                        $words[$j] = "<i>$word</i>";
+                                        break;
+                                }
+                            }
+                            $paragraphs[$i] = implode(' ', $words);
+                        }
+                        $result = implode("\n\n", $paragraphs);
+                        break;
+                }
+                break;
+            case 5: // markdown
+                $result = self::getFaker()->articleContentMarkdown();
+                break;
+        }
+        array_push($this->descriptions, $result);
+        return $result;
+    }
+
     private function generateRandomEvents(DateTime $start, DateTime $end, int $eventCount): void
     {
         $this->start = $start;
@@ -104,15 +180,11 @@ EOT;
         $end = $end->getTimestamp();
         for ($i = 0; $i < $eventCount; $i++) {
             $e = new vevent();
-            $summary = random_factor();
-            $description = random_factor();
-            $e->setSummary($summary);
-            $e->setDescription($description);
+            $e->setSummary($this->generateRandomSummary());
+            $e->setDescription($this->generateRandomDescription());
             $e->setDtstart(date('c', rand($start, $end)));
             $e->setDuration(0, 0, rand(0, 3), rand(1, 45));
             $this->base->addComponent($e);
-            array_push($this->summaries, $summary);
-            array_push($this->descriptions, $description);
         }
     }
 

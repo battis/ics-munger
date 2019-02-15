@@ -15,12 +15,17 @@ use Battis\IcsMunger\Filtered\Tests\Comparisons\Equals;
 use Battis\IcsMunger\Filtered\Tests\Comparisons\GreaterThan;
 use Battis\IcsMunger\Filtered\Tests\Comparisons\LessThan;
 use Battis\IcsMunger\Filtered\Tests\Comparisons\Like;
+use Battis\IcsMunger\Filtered\Transformations\RegexReplace;
+use Battis\IcsMunger\Filtered\Transformations\RenderMarkdown;
+use Battis\IcsMunger\Filtered\Transformations\Replace;
 use Battis\IcsMunger\Tests\Calendar\AbstractCalendarTestCase;
 use Battis\IcsMunger\Tests\TestCalendar;
+use Exception;
 
 class FilteredCalendarTest extends AbstractCalendarTestCase
 {
     const SUMMARY = 'summary';
+    const DESCRIPTION = 'description';
     const CALENDAR = 'calendar';
     const KEYWORD = 'keyword';
     const KEYWORD_A = 'keywordA';
@@ -155,17 +160,20 @@ class FilteredCalendarTest extends AbstractCalendarTestCase
      * @throws FilterException
      * @throws FilteredCalendarException
      */
-    public function testAndOperator(): void
+    public function testLogicalOperators(): void
     {
         $params = self::getFilteredCalendar('And');
-        $c = new FilteredCalendar(
-            self::getCalendarFilePath(self::BASE),
-            AndOp::expr([
-                GreaterThan::expr(self::SUMMARY, $params[self::KEYWORD_A]),
-                LessThan::expr(self::SUMMARY, $params[self::KEYWORD_B])
-            ])
+        self::assertCalendarMatches(
+            self::getCalendar($params[self::CALENDAR]),
+            new FilteredCalendar(
+                self::getCalendarFilePath(self::BASE),
+                AndOp::expr([
+                    GreaterThan::expr(self::SUMMARY, $params[self::KEYWORD_A]),
+                    LessThan::expr(self::SUMMARY, $params[self::KEYWORD_B])
+                ])
+            ),
+            'Logical And filter'
         );
-        self::assertCalendarMatches(self::getCalendar($params[self::CALENDAR]), $c);
     }
 
     /**
@@ -176,14 +184,17 @@ class FilteredCalendarTest extends AbstractCalendarTestCase
     public function testOrOperator(): void
     {
         $params = self::getFilteredCalendar('Or');
-        $c = new FilteredCalendar(
-            self::getCalendarFilePath(self::BASE),
-            OrOp::expr([
-                LessThan::expr(self::SUMMARY, $params[self::KEYWORD_A]),
-                GreaterThan::expr(self::SUMMARY, $params[self::KEYWORD_B])
-            ])
+        self::assertCalendarMatches(
+            self::getCalendar($params[self::CALENDAR]),
+            new FilteredCalendar(
+                self::getCalendarFilePath(self::BASE),
+                OrOp::expr([
+                    LessThan::expr(self::SUMMARY, $params[self::KEYWORD_A]),
+                    GreaterThan::expr(self::SUMMARY, $params[self::KEYWORD_B])
+                ])
+            ),
+            'Logical Or filter'
         );
-        self::assertCalendarMatches(self::getCalendar($params[self::CALENDAR]), $c);
     }
 
     /**
@@ -194,10 +205,71 @@ class FilteredCalendarTest extends AbstractCalendarTestCase
     public function testNotOperator(): void
     {
         $params = self::getFilteredCalendar('Not');
-        $c = new FilteredCalendar(
-            self::getCalendarFilePath(self::BASE),
-            NotOp::expr(Equals::expr(self::SUMMARY, $params[self::KEYWORD_A]))
+        self::assertCalendarMatches(
+            self::getCalendar($params[self::CALENDAR]),
+            new FilteredCalendar(
+                self::getCalendarFilePath(self::BASE),
+                NotOp::expr(Equals::expr(self::SUMMARY, $params[self::KEYWORD_A]))
+            ),
+            'Logical Not filter'
         );
-        self::assertCalendarMatches(self::getCalendar($params[self::CALENDAR]), $c);
+    }
+
+    /**
+     * @throws CalendarException
+     * @throws FilterException
+     * @throws FilteredCalendarException
+     */
+    public function testRegexReplaceFilter(): void
+    {
+        self::assertCalendarMatches(
+            self::getCalendar('transform_RegexReplace'),
+            new FilteredCalendar(
+                self::getCalendarFilePath(self::BASE),
+                [],
+                new RegexReplace(
+                    self::DESCRIPTION,
+                    '/[aeiou]/i',
+                    '_'
+                )
+            ),
+            'RegexReplace transformation'
+        );
+    }
+
+    /**
+     * @throws CalendarException
+     * @throws FilteredCalendarException
+     * @throws Exception
+     */
+    public function testReplaceFilter(): void
+    {
+        self::assertCalendarMatches(
+            self::getCalendar('transform_Replace'),
+            new FilteredCalendar(
+                self::getCalendarFilePath(self::BASE),
+                [],
+                new Replace(self::DESCRIPTION, ' ', '-')
+            ),
+            'Replace transformation'
+        );
+    }
+
+    /**
+     * @throws CalendarException
+     * @throws FilteredCalendarException
+     * @throws Exception
+     */
+    public function testRenderMarkdownFilter(): void
+    {
+        self::assertCalendarMatches(
+            self::getCalendar('transform_Markdown'),
+            new FilteredCalendar(
+                self::getCalendar(self::BASE),
+                [],
+                new RenderMarkdown(self::DESCRIPTION)
+            ),
+            'Render Markdown transformation'
+        );
     }
 }

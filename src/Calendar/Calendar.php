@@ -26,7 +26,7 @@ class Calendar extends vcalendar
         $config = [];
         $parseText = false;
         if (is_string($data)) {
-            if (strpos($data, '://', 1) !== false) {
+            if (preg_match('@^[a-z]+://.+$@i', $data)) {
                 $config['url'] = $data;
             } elseif (realpath($data)) {
                 $parseText = file_get_contents($data);
