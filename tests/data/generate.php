@@ -251,7 +251,7 @@ try {
                 return preg_replace('/[aeiou]/i', '_', $text);
             },
             'RenderMarkdown' => function (string $text) {
-                return Markdown::defaultTransform(str_replace('\n', "\n\n", $text));
+                return Markdown::defaultTransform($text);
             },
             'Replace' => function (string $text) {
                 return str_replace(' ', '-', $text);

@@ -263,7 +263,7 @@ class FilteredCalendarTest extends AbstractCalendarTestCase
     public function testRenderMarkdownFilter(): void
     {
         self::assertCalendarMatches(
-            self::getCalendar('transform_Markdown'),
+            self::getCalendar('transform_RenderMarkdown'),
             new FilteredCalendar(
                 self::getCalendar(self::BASE),
                 [],

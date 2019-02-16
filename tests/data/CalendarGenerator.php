@@ -21,6 +21,8 @@ class CalendarGenerator
     const START_RELATIVE = '-5 years';
     const END_RELATIVE = '+5 years';
 
+    const START_DATE = 'dtstart';
+
     private static $US_EASTERN_TIMEZONE = <<<EOT
 BEGIN:VTIMEZONE
 TZID:America/New_York
@@ -75,16 +77,49 @@ EOT;
     public function __construct($start = null, DateTime $end = null, int $eventCount = self::DEFAULT_EVENT_COUNT)
     {
         if (is_string($start) && realpath($start)) {
-            $this->base = new vcalendar();
-            $this->base->parse(file_get_contents(realpath($start)));
-            // FIXME set start and end fields
+            $this->setBase(new vcalendar());
+            $this->getBase()->parse(file_get_contents(realpath($start)));
+            $starts = array_keys($this->base->getProperty(self::START_DATE));
+            sort($starts);
+            $this->setStart(new DateTime($starts[0]));
+            $this->setEnd(new DateTime(array_pop($starts)));
         } else {
-            $this->base = self::getEmptyCalendar();
+            $this->setBase(self::getEmptyCalendar());
             if ($start === null) $start = new DateTime('-5 years');
             if ($end === null) $end = new DateTime('+5 years');
             if ($eventCount < 0) $eventCount = 0;
             $this->generateRandomEvents($start, $end, $eventCount);
         }
+    }
+
+    protected function getBase(): vcalendar
+    {
+        return $this->base;
+    }
+
+    protected function setBase(vcalendar $calendar): void
+    {
+        $this->base = $calendar;
+    }
+
+    protected function getStart(): DateTime
+    {
+        return $this->start;
+    }
+
+    protected function setStart(DateTime $start): void
+    {
+        $this->start = $start;
+    }
+
+    protected function getEnd(): DateTime
+    {
+        return $this->end;
+    }
+
+    protected function setEnd(DateTime $end): void
+    {
+        $this->end = $end;
     }
 
     private static function getEmptyCalendar(): vcalendar
@@ -174,8 +209,8 @@ EOT;
 
     private function generateRandomEvents(DateTime $start, DateTime $end, int $eventCount): void
     {
-        $this->start = $start;
-        $this->end = $end;
+        $this->setStart($start);
+        $this->setEnd($end);
         $start = $start->getTimestamp();
         $end = $end->getTimestamp();
         for ($i = 0; $i < $eventCount; $i++) {

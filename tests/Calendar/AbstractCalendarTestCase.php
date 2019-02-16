@@ -37,15 +37,11 @@ abstract class AbstractCalendarTestCase extends TestCase
 
     public static function assertEventMatches(vevent $expected, vevent $actual, string $message = ''): void
     {
-        foreach ([
-                     'uid',
-                     'summary',
-                     'description',
-                     'dtstart',
-                     'dtend'
-                 ] as $property) {
-            self::assertEquals($expected->getProperty($property), $actual->getProperty($property), $message);
-        }
+        self::assertEquals($expected->createUid(), $actual->createUid(), $message);
+        self::assertEquals($expected->createSummary(), $actual->createSummary(), $message);
+        self::assertEquals($expected->createDescription(), $actual->createDescription(), $message);
+        self::assertEquals($expected->createDtstart(), $actual->createDtstart(), $message);
+        self::assertEquals($expected->createDtend(), $actual->createDtend(), $message);
     }
 
     protected static function getBaseCalendar(): vcalendar

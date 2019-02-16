@@ -22,7 +22,7 @@ class RenderMarkdown extends AbstractTransformation
     public function transform(Event $event): Event
     {
         foreach ($this->properties as $property) {
-            $event->setProperty($property, Markdown::defaultTransform(str_replace('\n', "\n\n", $event->getProperty($property))));
+            $event->setProperty($property, Markdown::defaultTransform($event->getProperty($property)));
         }
         return $event;
     }
