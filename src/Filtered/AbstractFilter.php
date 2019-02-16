@@ -39,7 +39,8 @@ class AbstractFilter
      */
     public static function expr(...$params): AbstractFilter
     {
-        return new static(/** @scrutinizer ignore-type */
-            ...$params);
+        // @formatter:off
+        return new static(/** @scrutinizer ignore-type */ ...$params);
+        // @formatter:on
     }
 }
