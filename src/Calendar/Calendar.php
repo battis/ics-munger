@@ -12,7 +12,7 @@ class Calendar extends vcalendar
     const PRODUCT_IDENTIFIER = 'prodid';
     const VERSION = 'version';
     const CALENDAR_SCALE = 'calscale';
-    const MIME_METHOD = 'method';
+    const METHOD = 'method';
     const X_PROPERTY_NAME = 0;
     const X_PROPERTY_VALUE = 1;
 
@@ -36,43 +36,12 @@ class Calendar extends vcalendar
         } elseif (is_array($data)) {
             $config = $data;
         } elseif ($data instanceof vcalendar) {
-            parent::__construct();
-            $this->copy($data);
-            return;
+            $parseText = $data->createCalendar();
         } else {
             throw new CalendarException('Instantiation requires a Calendar object, configuration array, a URL, a filepath, or iCalendar text data, received ' . gettype($data) . ' instead');
         }
         parent::__construct($config);
         $this->parse($parseText);
-    }
-
-    /**
-     * @param vcalendar $data
-     */
-    private function copy(vcalendar $data): void
-    {
-        // required properties
-        $this->setProperty(self::PRODUCT_IDENTIFIER, $data->getProperty(self::PRODUCT_IDENTIFIER));
-        $this->setProperty(self::VERSION, $data->getProperty(self::VERSION));
-
-        // optional properties
-        if ($calscale = $data->getProperty(self::CALENDAR_SCALE)) {
-            $this->setProperty(self::CALENDAR_SCALE, $calscale);
-        }
-        if ($method = $data->getProperty(self::MIME_METHOD)) {
-            $this->setProperty(self::MIME_METHOD, $method);
-        }
-
-        // X-properties and IANA-properties
-        while ($xprop = $data->getProperty()) {
-            $this->setProperty($xprop[self::X_PROPERTY_NAME], $xprop[self::X_PROPERTY_VALUE]);
-        }
-
-        // components
-        unset($data->compix); // reset component index
-        while ($component = $data->getComponent()) {
-            $this->addComponent($component);
-        }
     }
 
     /**

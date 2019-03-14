@@ -26,6 +26,7 @@
         }
     },
     "require-dev": {
+        "ext-json": "*",
         "phpunit/phpunit": "^7",
         "marcuspi/random-factor": "dev-master",
         "joshtronic/php-loremipsum": "^1.0",

@@ -13,13 +13,11 @@ abstract class AbstractCalendarTestCase extends TestCase
     const BASE = 'base';
     const BASE_FILEPATH = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'data';
     const BASE_URL = 'https://raw.githubusercontent.com/battis/ics-munger/master/tests/data';
-    /**
-     * @var vcalendar
-     */
+
+    /** @var vcalendar */
     private static $base = null;
-    /**
-     * @var null string
-     */
+
+    /** @var null string */
     private static $baseFile = null;
 
     public static function assertCalendarMatches(vcalendar $expected, vcalendar $actual, string $message = ''): void

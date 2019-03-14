@@ -1,99 +1,81 @@
 <?php
 
 
-namespace Battis\IcsMunger\Tests;
+namespace Battis\IcsMunger\Tests\Calendar;
 
 
 use Battis\IcsMunger\Calendar\Calendar;
 use Battis\IcsMunger\Calendar\CalendarException;
-use Battis\IcsMunger\Calendar\Event;
-use Battis\IcsMunger\Tests\Calendar\AbstractCalendarTestCase;
+use Battis\IcsMunger\Tests\TestCalendar;
 use Exception;
 
 class CalendarTest extends AbstractCalendarTestCase
 {
-    /**
-     * @throws CalendarException
-     * @throws Exception
-     */
-    public function testInstantiation(): Calendar
-    {
-        self::assertCalendarMatches(
-            self::getBaseCalendar(),
-            new Calendar(self::getBaseCalendarFileContents()),
-            'Instantiation from text data'
-        );
-
-        self::assertCalendarMatches(
-            self::getBaseCalendar(),
-            new Calendar(self::getCalendarFilePath(self::BASE)),
-            'Instantiation from file path'
-        );
-
-        self::assertCalendarMatches(
-            self::getBaseCalendar(),
-            new Calendar(self::getCalendarUrl(self::BASE)),
-            'Instantiation from URL'
-        );
-
-        self::assertCalendarMatches(
-            self::getBaseCalendar(),
-            new Calendar([
-                'unique_id' => __CLASS__,
-                'url' => self::getCalendarUrl(self::BASE)
-            ]),
-            'Instantiation from configuration array'
-        );
-
-        self::assertCalendarMatches(
-            self::getBaseCalendar(),
-            new Calendar(self::getBaseCalendar()),
-            'Instantiation from vcalendar instance'
-        );
-
-        $test = new TestCalendar(self::getBaseCalendarFileContents());
-        self::assertCalendarMatches(
-            self::getBaseCalendar(),
-            new Calendar($test),
-            'Instantiation from Calendar instance'
-        );
-
-        return $test;
-    }
-
-    /**
-     * @throws CalendarException
-     */
-    public function testInstantiationFromNull(): void
-    {
-        $this->expectException(CalendarException::class);
-        new Calendar(null);
-    }
-
-    /**
-     * @throws CalendarException
-     */
-    public function testInstantiationFromInvalidData(): void
-    {
-        $this->expectException(CalendarException::class);
-        new Calendar(123);
-    }
+    /** @var string */
+    protected static $calendarType = Calendar::class;
 
     /**
      * @param Calendar $calendar
-     * @depends testInstantiation
-     * @throws CalendarException
+     * @param string $message
      */
-    public function testGetEvent(Calendar $calendar): void
+    protected function validateInstantiation(Calendar $calendar, string $message = ''): void
     {
-        $uid = [];
-        while ($event = $calendar->getEvent()) {
-            self::assertInstanceOf(Event::class, $event);
-            array_push($uid, $event->getUid());
-        }
-        self::assertNotEmpty($uid);
-        self::assertInstanceOf(Event::class, $calendar->getEvent($uid[rand(0, count($uid) - 1)]));
-        self::assertFalse(array_search(__FUNCTION__, $uid));
-        self::assertFalse($calendar->getEvent(__FUNCTION__));
+        self::assertCalendarMatches(self::getBaseCalendar(), $calendar, $message);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testInstantiation(...$params): Calendar
+    {
+        echo self::$calendarType . PHP_EOL;
+        $this->validateInstantiation(
+            new self::$calendarType(self::getBaseCalendarFileContents(), ...$params),
+            'Instantiation from text data'
+        );
+
+        $this->validateInstantiation(
+            new self::$calendarType(self::getCalendarFilePath(self::BASE), ...$params),
+            'Instantiation from file path'
+        );
+
+        $this->validateInstantiation(
+            new self::$calendarType(self::getCalendarUrl(self::BASE), ...$params),
+            'Instantiation from URL'
+        );
+
+        $this->validateInstantiation(
+            new self::$calendarType(
+                [
+                    'unique_id' => __CLASS__,
+                    'url' => self::getCalendarUrl(self::BASE)
+                ],
+                ...$params),
+            'Instantiation from configuration array'
+        );
+
+        $this->validateInstantiation(
+            new self::$calendarType(self::getBaseCalendar(), ...$params),
+            'Instantiation from vcalendar instance'
+        );
+
+        $this->validateInstantiation(
+            new self::$calendarType(new TestCalendar(self::getBaseCalendar()), ...$params),
+            'Instantiation from Calendar instance'
+        );
+
+        return new self::$calendarType(self::getBaseCalendar(), ...$params);
+    }
+
+    public function testInstantiationFromNull(...$params): void
+    {
+        $this->expectException(CalendarException::class);
+        new self::$calendarType(null, ...$params);
+    }
+
+    public function testInstantiationFromInvalidData(...$params): void
+    {
+        $this->expectException(CalendarException::class);
+        new self::$calendarType(123, ...$params);
     }
 }

@@ -39,13 +39,4 @@ abstract class AbstractPersistentCalendar extends Calendar
     {
         return $this->db->prepare($statement);
     }
-
-    /**
-     * @param string $statement
-     * @return PDOStatement|boolean
-     */
-    protected function query(string $statement)
-    {
-        return $this->db->query($statement);
-    }
 }

@@ -7,7 +7,7 @@ namespace Battis\IcsMunger\Tests\Calendar;
 use Exception;
 use PDO;
 
-abstract class AbstractPersistentCalendarTestCase extends AbstractCalendarTestCase
+abstract class AbstractPersistentCalendarTestCase extends CalendarTest
 {
     /**
      * @var PDO
@@ -68,6 +68,7 @@ abstract class AbstractPersistentCalendarTestCase extends AbstractCalendarTestCa
     /**
      * @return array
      * @throws Exception
+     * FIXME I don't think this SELECT query actually works...
      */
     private function getDatabaseTables(): array
     {
@@ -144,7 +145,11 @@ abstract class AbstractPersistentCalendarTestCase extends AbstractCalendarTestCa
         }
     }
 
-    abstract protected function loadFixture();
+    protected function loadFixture(): void
+    {
+    }
 
-    abstract protected function unloadFixture();
+    protected function unloadFixture(): void
+    {
+    }
 }
