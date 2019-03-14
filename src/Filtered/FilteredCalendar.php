@@ -100,7 +100,6 @@ class FilteredCalendar extends Calendar
             } else {
                 throw new FilteredCalendarException('Expected callable with signature `function(Event): bool`');
             }
-
         }
     }
 
