@@ -38,12 +38,6 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
      */
     public function __construct($data, PDO $db = null, $name = null)
     {
-        if ($db === null && $data instanceof AbstractPersistentCalendar) {
-            $db = $data->getDb();
-            if ($db === null) {
-                throw new RetainCalendarHistoryException('Cannot infer a database connection');
-            }
-        }
         parent::__construct($data, /** @scrutinizer ignore-type */
             $db);
         if ($name === null) {

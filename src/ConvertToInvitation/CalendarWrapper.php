@@ -10,9 +10,10 @@ class CalendarWrapper extends Calendar
 {
     public function removeContents(): void
     {
-        while ($this->deleteComponent('vevent')) continue;
-        while ($this->deleteComponent('vtodo')) continue;
-        while ($this->deleteComponent('vjournal')) continue;
-        while ($this->deleteComponent('vfreebusy')) continue;
+        foreach (['vevent', 'vtodo', 'vjournal', 'vfreebusy'] as $componentType) {
+            while ($this->deleteComponent($componentType)) {
+                continue;
+            }
+        }
     }
 }

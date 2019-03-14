@@ -17,6 +17,10 @@ class ConsolidateRecurrencesCalendar extends Calendar
     }
 
     /**
+     * @param bool $compareSummary
+     * @param bool $compareDescription
+     * @param bool $compareLocation
+     * @param bool $compareDuration
      * @throws CalendarException
      */
     public function consolidate(bool $compareSummary = true, bool $compareDescription = true, bool $compareLocation = true, bool $compareDuration = true): void
@@ -26,7 +30,7 @@ class ConsolidateRecurrencesCalendar extends Calendar
         while ($event = $this->getEvent()) {
             array_push($events, $event);
         }
-        $consolidated = [];
+
         while (!empty($events)) {
             $event = array_pop($events);
             $start = $event->getStart();

@@ -4,11 +4,11 @@
 namespace Battis\IcsMunger\Tests\RetainHistory;
 
 
+use Battis\IcsMunger\Calendar\Calendar;
 use Battis\IcsMunger\Calendar\CalendarException;
 use Battis\IcsMunger\IcsMungerException;
 use Battis\IcsMunger\RetainHistory\RetainCalendarHistory;
 use Battis\IcsMunger\Tests\Calendar\AbstractPersistentCalendarTestCase;
-use Battis\IcsMunger\Tests\TestCalendar;
 use Exception;
 
 class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
@@ -22,115 +22,53 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
      */
     public function setUp()
     {
+        self::$calendarType = RetainCalendarHistory::class;
+
         parent::setUp();
-        self::getDatabase()->query('TRUNCATE TABLE `calendars`');
-        self::getDatabase()->query('TRUNCATE TABLE `events`');
-        self::getDatabase()->query('TRUNCATE TABLE `syncs');
+
+        $this->resetPersistence();
     }
 
     /**
-     * @param RetainCalendarHistory $c
+     * @param Calendar $calendar
+     * @param string $message
+     * @throws CalendarException
      * @throws Exception
      */
-    private function instantiationTests(RetainCalendarHistory $c, string $message = ''): void
+    protected function validateInstantiation(Calendar $calendar, string $message = ''): void
     {
-        self::assertCalendarMatches(self::getBaseCalendar(), $c, $message);
-        self::assertCalendarCached($c, $message);
-    }
-
-    /**
-     * @throws IcsMungerException
-     * @throws Exception
-     */
-    public function testInstantiationFromNullData(): void
-    {
-        $this->expectException(CalendarException::class);
-        new RetainCalendarHistory(null, self::getDatabase(), __FUNCTION__);
+        self::assertCalendarMatches(self::getBaseCalendar(), $calendar, $message);
+        self::assertInstanceOf(RetainCalendarHistory::class, $calendar);
+        if ($calendar instanceof RetainCalendarHistory) {
+            self::assertCalendarCached($calendar, $message);
+        }
+        $this->resetPersistence();
     }
 
     /**
      * @throws IcsMungerException
      * @throws Exception
      */
-    public function testInstantiationFromInvalidData(): void
+    public function testInstantiation(...$params): Calendar
     {
-        $this->expectException(CalendarException::class);
-        new RetainCalendarHistory(123, self::getDatabase(), __FUNCTION__);
-    }
+        parent::testInstantiation(self::getDatabase(), __FUNCTION__, ...$params);
 
-    /**
-     * @throws IcsMungerException
-     * @throws Exception
-     */
-    public function testInstantiation(): void
-    {
-        $this->instantiationTests(
-            new RetainCalendarHistory(
-                self::getBaseCalendarFileContents(),
-                self::getDatabase(),
-                "Text data"
-            ),
-            'Instantiation from text data'
-        );
-
-        $this->instantiationTests(
-            new RetainCalendarHistory(
-                self::getCalendarFilePath(self::BASE),
-                self::getDatabase(),
-                "File path"
-            ),
-            'Instantiation from file path'
-        );
-
-        $this->instantiationTests(
-            new RetainCalendarHistory(
-                self::getCalendarUrl(self::BASE),
-                self::getDatabase(),
-                'URL'
-            ),
-            'Instantiation from URL'
-        );
-
-        $this->instantiationTests(
-            new RetainCalendarHistory(
-                [
-                    'unique_id' => __CLASS__,
-                    'url' => self::getCalendarUrl(self::BASE)
-                ],
-                self::getDatabase(),
-                'Configuration array'
-            ),
-            'Instantiation from configuration array'
-        );
-
-        $this->instantiationTests(
-            new RetainCalendarHistory(
-                self::getBaseCalendar(),
-                self::getDatabase(),
-                'vcalendar'
-            ),
-            'Instantiation from vcalendar instance'
-        );
-
-        $this->instantiationTests(
-            new RetainCalendarHistory(
-                new TestCalendar(self::getCalendarFilePath(self::BASE)),
-                self::getDatabase(),
-                'Calendar'
-            ),
-            'Instantiation from Calendar instance'
-        );
-
-        $this->instantiationTests(
-            new RetainCalendarHistory(
+        $this->validateInstantiation(
+            new self::$calendarType(
                 new RetainCalendarHistory(
                     self::getCalendarFilePath(self::BASE),
                     self::getDatabase(),
                     'RetainCalendarHistory without database'
-                )
+                ),
+                ...$params
             ),
-            'Instantiation from RetainCalendarHistory instance'
+            'Instantiation from RetainCalendarHistory instance without database'
         );
+
+        // TODO instantiation as copy of full RetainCalendarHistory
+        self::assertTrue(true, 'Instantiation from RetainCalendarHistory instance with database');
+
+        return new self::$calendarType(self::getBaseCalendar(), self::getDatabase(), __FUNCTION__, ...$params);
     }
 
     /**
@@ -139,19 +77,12 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
      */
     public function testOverlappingSnapshots(): void
     {
+        $calendar = null;
         for ($i = 0; $i < 3; $i++) {
-            $c = new RetainCalendarHistory(self::getCalendarFilePath("snapshot_$i"), self::getDatabase(), __FUNCTION__);
-            self::assertCalendarCached($c);
+            $calendar = new self::$calendarType(self::getCalendarFilePath("snapshot_$i"), self::getDatabase(), __FUNCTION__);
+            self::assertCalendarCached($calendar);
         }
-        $this->instantiationTests($c);
-    }
-
-    protected function loadFixture()
-    {
-    }
-
-    protected function unloadFixture()
-    {
+        $this->validateInstantiation($calendar, 'Calendar of retained overlapping snapshots');
     }
 
     /**
@@ -186,5 +117,29 @@ class RetainCalendarHistoryTest extends AbstractPersistentCalendarTestCase
             ['calendar' => $c->getId()],
             $message
         );
+    }
+
+    /**
+     * @param mixed ...$params
+     * @throws Exception
+     */
+    public function testInstantiationFromInvalidData(...$params): void
+    {
+        parent::testInstantiationFromInvalidData(self::getDatabase(), ...$params);
+    }
+
+    public function testInstantiationFromNull(...$params): void
+    {
+        parent::testInstantiationFromNull(self::getDatabase(), ...$params);
+    }
+
+    /**
+     * @throws Exception
+     */
+    protected function resetPersistence(): void
+    {
+        self::getDatabase()->query('TRUNCATE TABLE `calendars`');
+        self::getDatabase()->query('TRUNCATE TABLE `events`');
+        self::getDatabase()->query('TRUNCATE TABLE `syncs');
     }
 }

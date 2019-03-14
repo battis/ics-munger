@@ -20,7 +20,7 @@ class FilteredCalendarTest extends CalendarTest
     }
 
     /**
-     * @param FilteredCalendar $calendar
+     * @param Calendar $calendar
      * @param string $message
      */
     protected function validateInstantiation(Calendar $calendar, string $message = ''): void
@@ -34,7 +34,7 @@ class FilteredCalendarTest extends CalendarTest
     public function testInstantiation(...$params): Calendar
     {
         parent::testInstantiation(
-            function (Event $e) {
+            function () {
                 return true;
             },
             function (Event $e) {
@@ -48,7 +48,7 @@ class FilteredCalendarTest extends CalendarTest
 
         return new self::$calendarType(
             self::getBaseCalendar(),
-            function (Event $e) {
+            function () {
                 return true;
             },
             function (Event $e) {

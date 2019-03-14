@@ -15,9 +15,14 @@ abstract class AbstractPersistentCalendar extends Calendar
      */
     private $db;
 
-    public function __construct($data, PDO $db)
+    public function __construct($data, PDO $db = null)
     {
         parent::__construct($data);
+        if ($db = null && $data instanceof AbstractPersistentCalendar) {
+            if (($db = $data->getDb()) === null) {
+                throw new PersistentCalendarException('PDO instance not provided and cannot be inferred');
+            }
+        }
         $this->setDb($db);
     }
 

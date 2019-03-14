@@ -51,16 +51,10 @@ class Calendar extends vcalendar
      */
     public function getEvent($uid = null)
     {
-        if ($uid !== null) {
-            $component = $this->getComponent($uid);
-            if ($component instanceof vevent) {
-                return new Event($component);
-            }
-        } else {
-            $vevent = $this->getComponent('vevent');
-            if ($vevent) {
-                return new Event($vevent);
-            }
+        if ($uid !== null && ($component = $this->getComponent($uid)) instanceof vevent) {
+            return new Event($component);
+        } else if (($vevent = $this->getComponent('vevent')) !== false) {
+            return new Event($vevent);
         }
         return false;
     }

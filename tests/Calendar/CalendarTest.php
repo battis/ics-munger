@@ -7,7 +7,6 @@ namespace Battis\IcsMunger\Tests\Calendar;
 use Battis\IcsMunger\Calendar\Calendar;
 use Battis\IcsMunger\Calendar\CalendarException;
 use Battis\IcsMunger\Tests\TestCalendar;
-use Exception;
 
 class CalendarTest extends AbstractCalendarTestCase
 {
@@ -24,7 +23,9 @@ class CalendarTest extends AbstractCalendarTestCase
     }
 
     /**
-     * @throws Exception
+     * @param array $params
+     * @return Calendar
+     * @throws CalendarException
      */
     public function testInstantiation(...$params): Calendar
     {

@@ -75,7 +75,7 @@ class Event extends vevent
     }
 
     /**
-     * @return DateTime|bool
+     * @return DateTime|false
      */
     public function getStart()
     {
@@ -86,7 +86,7 @@ class Event extends vevent
     }
 
     /**
-     * @return DateTime|bool
+     * @return DateTime|false
      */
     public function getEnd()
     {
@@ -107,6 +107,7 @@ class Event extends vevent
             $duration = $end->diff($start, true);
             return $duration->format('P%aDT%hH%iM%sS');
         }
+        return false;
     }
 
     /**
