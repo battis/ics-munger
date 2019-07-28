@@ -1,9 +1,12 @@
 <?php
 
 
-namespace Battis\IcsMunger\Calendar;
+namespace Battis\IcsMunger\PersistentCalendar;
 
 
+use Battis\Calendar\Calendar;
+use Battis\Calendar\Component;
+use Battis\Calendar\Property;
 use PDO;
 use PDOStatement;
 
@@ -13,16 +16,17 @@ abstract class AbstractPersistentCalendar extends Calendar
     /**
      * @var PDO
      */
-    private $db;
+    private $db = null;
 
-    public function __construct($data, PDO $db = null)
+    /**
+     * AbstractPersistentCalendar constructor.
+     * @param Property[] $properties
+     * @param Component[] $components
+     * @param PDO $db
+     */
+    public function __construct(array $properties = [], array $components = [], PDO $db)
     {
-        parent::__construct($data);
-        if (($db === null) && ($data instanceof AbstractPersistentCalendar)) {
-            if (($db = $data->getDb()) === null) {
-                throw new PersistentCalendarException('PDO instance not provided and cannot be inferred');
-            }
-        }
+        parent::__construct($properties, $components);
         $this->setDb($db);
     }
 

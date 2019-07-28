@@ -4,10 +4,10 @@
 namespace Battis\IcsMunger\Tests\Filtered;
 
 
-use Battis\IcsMunger\Calendar\Calendar;
-use Battis\IcsMunger\Calendar\Event;
 use Battis\IcsMunger\Filtered\FilteredCalendar;
 use Battis\IcsMunger\Filtered\FilteredCalendarException;
+use Battis\IcsMunger\PersistentCalendar\Calendar;
+use Battis\IcsMunger\PersistentCalendar\Event;
 use Battis\IcsMunger\Tests\Calendar\CalendarTest;
 use kigkonsult\iCalcreator\vevent;
 

@@ -4,8 +4,8 @@
 namespace Battis\IcsMunger\Tests\Calendar;
 
 
-use Battis\IcsMunger\Calendar\CalendarException;
-use Battis\IcsMunger\Calendar\Event;
+use Battis\IcsMunger\PersistentCalendar\CalendarException;
+use Battis\IcsMunger\PersistentCalendar\Event;
 use PHPUnit\Framework\TestCase;
 
 class EventTest extends TestCase

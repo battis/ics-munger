@@ -1,5 +1,27 @@
+# Dependencies
 /vendor/
+/node_modules
+/bower_components
+
+# IDEs and editors
 /.idea/
+.project
+.classpath
+*.launch
+.settings/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# PHP development
 /phpdoc/
 /coverage/
-config.json
+/external/
+
+# environment
+.env
+/logs/*
+!/logs/README.md
+/var/*
+!/var/README.md

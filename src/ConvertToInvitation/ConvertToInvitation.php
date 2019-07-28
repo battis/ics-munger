@@ -4,9 +4,9 @@
 namespace Battis\IcsMunger\ConvertToInvitation;
 
 
-use Battis\IcsMunger\Calendar\AbstractPersistentCalendar;
-use Battis\IcsMunger\Calendar\Calendar;
-use Battis\IcsMunger\Calendar\CalendarException;
+use Battis\IcsMunger\PersistentCalendar\AbstractPersistentCalendar;
+use Battis\IcsMunger\PersistentCalendar\Calendar;
+use Battis\IcsMunger\PersistentCalendar\CalendarException;
 use kigkonsult\iCalcreator\vcalendar;
 use PDO;
 use Swift_Attachment;
@@ -35,14 +35,12 @@ class ConvertToInvitation extends AbstractPersistentCalendar
      * @param string $subject
      * @throws CalendarException
      */
-    public function __construct($data, PDO $db = null, Swift_Mailer $mailer, string $organizer, $attendee = null, string $subject = 'Calendar Update')
+    public function __construct($data, PDO $db = null, Swift_Mailer $mailer, string $organizer, string $subject = 'Calendar Update')
     {
         parent::__construct($data, $db);
         $this->setMailer($mailer);
         $this->setOrganizer($organizer);
-        if ($attendee !== null) {
-            $this->invite($attendee, $subject);
-        }
+
     }
 
     /**

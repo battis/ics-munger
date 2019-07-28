@@ -5,7 +5,6 @@ namespace Battis\IcsMunger\Tests\data;
 
 
 use BlogArticleFaker\FakerProvider as BlogArticleFakerProvider;
-use DateInterval;
 use DateTime;
 use Exception;
 use Faker\Factory;
@@ -15,13 +14,11 @@ use kigkonsult\iCalcreator\vcalendar;
 use kigkonsult\iCalcreator\vevent;
 use kigkonsult\iCalcreator\vtimezone;
 
-class CalendarGenerator
+class CalendarGenerator extends vcalendar
 {
     const DEFAULT_EVENT_COUNT = 1000;
     const START_RELATIVE = '-5 years';
     const END_RELATIVE = '+5 years';
-
-    const START_DATE = 'dtstart';
 
     private static $US_EASTERN_TIMEZONE = <<<EOT
 BEGIN:VTIMEZONE
@@ -44,28 +41,10 @@ END:DAYLIGHT
 END:VTIMEZONE
 EOT;
 
-    /** @var string */
-    private static $calendarDirectory = null;
-
     /** @var LoremIpsum */
     private static $loremIpsum = null;
 
     private static $faker = null;
-
-    /** @var vcalendar */
-    private $base;
-
-    /** @var DateTime */
-    private $start;
-
-    /** @var DateTime */
-    private $end;
-
-    /** @var string[] */
-    private $summaries = [];
-
-    /** @var string[] */
-    private $descriptions = [];
 
     /**
      * CalendarGenerator constructor.
@@ -76,15 +55,11 @@ EOT;
      */
     public function __construct($start = null, DateTime $end = null, int $eventCount = self::DEFAULT_EVENT_COUNT)
     {
+        parent::__construct(['unique_id' => __CLASS__]);
         if (is_string($start) && realpath($start)) {
-            $this->setBase(new vcalendar());
-            $this->getBase()->parse(file_get_contents(realpath($start)));
-            $starts = array_keys($this->base->getProperty(self::START_DATE));
-            sort($starts);
-            $this->setStart(new DateTime($starts[0]));
-            $this->setEnd(new DateTime(array_pop($starts)));
+            $this->parse(file_get_contents(realpath($start)));
         } else {
-            $this->setBase(self::getEmptyCalendar());
+            $this->initializeEmptyCalendar();
             if ($start === null) $start = new DateTime('-5 years');
             if ($end === null) $end = new DateTime('+5 years');
             if ($eventCount < 0) $eventCount = 0;
@@ -92,56 +67,23 @@ EOT;
         }
     }
 
-    protected function getBase(): vcalendar
+    private function initializeEmptyCalendar()
     {
-        return $this->base;
-    }
-
-    protected function setBase(vcalendar $calendar): void
-    {
-        $this->base = $calendar;
-    }
-
-    protected function getStart(): DateTime
-    {
-        return $this->start;
-    }
-
-    protected function setStart(DateTime $start): void
-    {
-        $this->start = $start;
-    }
-
-    protected function getEnd(): DateTime
-    {
-        return $this->end;
-    }
-
-    protected function setEnd(DateTime $end): void
-    {
-        $this->end = $end;
-    }
-
-    private static function getEmptyCalendar(): vcalendar
-    {
-        $c = new vcalendar(['unique_id' => __CLASS__]);
-        $c->setCalscale('GREGORIAN');
-        $c->setMethod('PUBLISH');
-        $c->setProperty('X-WR-CALNAME', 'ICS Munger Test Calenadar');
+        $this->setCalscale('GREGORIAN');
+        $this->setMethod('PUBLISH');
+        $this->setProperty('X-WR-CALNAME', 'ICS Munger Test Calendar');
         $tz = new vtimezone();
         $tz->parse(self::$US_EASTERN_TIMEZONE);
-        $c->addComponent($tz);
-        return $c;
+        $this->addComponent($tz);
     }
 
-    private function generateRandomSummary(): string
+    protected function generateRandomSummary(): string
     {
         $result = random_factor();
-        array_push($this->summaries, $result);
         return $result;
     }
 
-    private static function getLoremIpsum(): LoremIpsum
+    protected static function getLoremIpsum(): LoremIpsum
     {
         if (self::$loremIpsum === null) {
             self::$loremIpsum = new LoremIpsum();
@@ -149,7 +91,7 @@ EOT;
         return self::$loremIpsum;
     }
 
-    private static function getFaker(): Generator
+    protected static function getFaker(): Generator
     {
         if (self::$faker === null) {
             self::$faker = Factory::create();
@@ -158,7 +100,7 @@ EOT;
         return self::$faker;
     }
 
-    private function generateRandomDescription(): string
+    protected function generateRandomDescription(): string
     {
         $result = '';
         switch (rand(1, 5)) {
@@ -203,14 +145,11 @@ EOT;
                 $result = self::getFaker()->articleContentMarkdown();
                 break;
         }
-        array_push($this->descriptions, $result);
         return $result;
     }
 
     private function generateRandomEvents(DateTime $start, DateTime $end, int $eventCount): void
     {
-        $this->setStart($start);
-        $this->setEnd($end);
         $start = $start->getTimestamp();
         $end = $end->getTimestamp();
         for ($i = 0; $i < $eventCount; $i++) {
@@ -219,124 +158,7 @@ EOT;
             $e->setDescription($this->generateRandomDescription());
             $e->setDtstart(date('c', rand($start, $end)));
             $e->setDuration(0, 0, rand(0, 3), rand(1, 45));
-            $this->base->addComponent($e);
+            $this->addComponent($e);
         }
-    }
-
-    public function setCalendarDirectory(string $directory): void
-    {
-        self::$calendarDirectory = $directory;
-    }
-
-    /**
-     * @throws Exception
-     */
-    public function emptyCalendarDirectory(): void
-    {
-        if (self::$calendarDirectory === null) throw new Exception('Must set directory');
-        foreach (scandir(self::$calendarDirectory) as $file) {
-            if (is_file(self::$calendarDirectory . DIRECTORY_SEPARATOR . $file)) {
-                unlink(self::$calendarDirectory . DIRECTORY_SEPARATOR . $file);
-            }
-        }
-    }
-
-    /**
-     * @param string $filename
-     * @throws Exception
-     */
-    public function save(string $filename): void
-    {
-        if (self::$calendarDirectory === null) throw new Exception('Must set directory');
-        if (!strpos($filename, '.ics')) $filename .= '.ics';
-        $this->base->setConfig('directory', self::$calendarDirectory);
-        $this->base->setConfig('filename', $filename);
-        $this->base->saveCalendar();
-    }
-
-    /**
-     * @param callable $filter callable(vevent): bool
-     * @return CalendarGenerator
-     * @throws Exception
-     */
-    public function filter(callable $filter): CalendarGenerator
-    {
-        $result = new CalendarGenerator(null, null, 0);
-        $this->base->getComponent(0);
-        while ($e = $this->base->getComponent('vevent')) {
-            if ($filter($e)) {
-                $result->base->addComponent($e);
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * @param callable $transform callable(vevent): vevent
-     * @return CalendarGenerator
-     * @throws Exception
-     */
-    public function transform(callable $transform): CalendarGenerator
-    {
-        $result = new CalendarGenerator(null, null, 0);
-        $this->base->getComponent(0);
-        while ($e = $this->base->getComponent('vevent')) {
-            $result->base->addComponent($transform($e));
-        }
-        return $result;
-    }
-
-    /**
-     * @param int $count
-     * @param float $overlapPercentage
-     * @return CalendarGenerator[][]
-     * @throws Exception
-     */
-    public function snapshots(int $count, float $overlapPercentage = 0.9): array
-    {
-        $result = [];
-        $window = (int)(($this->end->getTimestamp() - $this->start->getTimestamp()) / ($overlapPercentage + (($count - 1) * (1 - $overlapPercentage))));
-        $step = (int)((1 - $overlapPercentage) * $window);
-        $start = $this->start;
-        for ($i = 0; $i < $count; $i++) {
-            $snapshot = new CalendarGenerator(null, null, 0);
-            $end = clone $start;
-            $end->add($this->interval($window));
-            $this->base->getComponent(0);
-            foreach ($this->base->selectComponents($start, $end, null, null, null, null, 'vevent', true, true, false) as $e) {
-                $snapshot->base->addComponent($e);
-            }
-            array_push($result, $snapshot);
-            $start->add($this->interval($step));
-        }
-        return $result;
-    }
-
-    /**
-     * @param int $seconds
-     * @return DateInterval
-     * @throws Exception
-     */
-    private function interval(int $seconds): DateInterval
-    {
-        $years = (int)($seconds / (60 * 60 * 24 * 365));
-        if ($years) $seconds = $seconds % ($years * 60 * 60 * 24 * 365);
-        $days = (int)($seconds / (60 * 60 * 24));
-        if ($days) $seconds = $seconds % ($days * 60 * 60 * 24);
-        $hours = (int)($seconds / (60 * 60));
-        if ($hours) $seconds = $seconds % ($hours * 60 * 60);
-        $minutes = (int)($seconds / 60);
-        if ($minutes) $seconds = $seconds % ($minutes * 60);
-        return new DateInterval("P{$years}Y{$days}DT{$hours}H{$minutes}M{$seconds}S");
-    }
-
-    public function getRandomSummary(): string
-    {
-        return $this->summaries[rand(0, count($this->summaries) - 1)];
-    }
-
-    public function getRandomDescription(): string
-    {
-        return $this->descriptions[rand(0, count($this->descriptions) - 1)];
     }
 }

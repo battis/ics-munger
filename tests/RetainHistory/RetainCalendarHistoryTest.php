@@ -4,9 +4,9 @@
 namespace Battis\IcsMunger\Tests\RetainHistory;
 
 
-use Battis\IcsMunger\Calendar\Calendar;
-use Battis\IcsMunger\Calendar\CalendarException;
 use Battis\IcsMunger\IcsMungerException;
+use Battis\IcsMunger\PersistentCalendar\Calendar;
+use Battis\IcsMunger\PersistentCalendar\CalendarException;
 use Battis\IcsMunger\RetainHistory\RetainCalendarHistory;
 use Battis\IcsMunger\Tests\Calendar\AbstractPersistentCalendarTestCase;
 use Exception;

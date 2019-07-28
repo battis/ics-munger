@@ -4,10 +4,10 @@
 namespace Battis\IcsMunger\Filtered;
 
 
-use Battis\IcsMunger\Calendar\Calendar;
-use Battis\IcsMunger\Calendar\CalendarException;
-use Battis\IcsMunger\Calendar\Event;
-
+use Battis\Calendar\Calendar;
+use Battis\Calendar\Component;
+use Battis\Calendar\Components\Event;
+use Battis\Calendar\Property;
 
 class FilteredCalendar extends Calendar
 {
@@ -17,60 +17,62 @@ class FilteredCalendar extends Calendar
     /** @var callable */
     private $transformation = null;
 
-    /**
-     * FilteredCalendar constructor.
-     * @param $data
-     * @param callable $test function(Event): bool
-     * @param callable $transformation function(Event): Event
-     * @throws CalendarException
-     * @throws FilteredCalendarException
-     */
-    public function __construct($data, callable $test = null, callable $transformation = null)
-    {
-        parent::__construct($data);
-        $this->setTest($test);
-        $this->setTransformation($transformation);
-        $this->apply();
-    }
+    /** @var bool */
+    private $tested = false;
+
+    /** @var bool */
+    private $transformed = false;
 
     /**
-     * @throws CalendarException
+     * FilteredCalendar constructor.
+     * @param Property[] $properties
+     * @param Component[] $components
+     * @param callable $test function(Event): bool
+     * @param callable $transformation function(Event): Event
+     * @throws FilteredCalendarException
      */
+    public function __construct(array $properties = [], array $components = [], callable $test = null, callable $transformation = null)
+    {
+        parent::__construct($properties, $components);
+        $this->setTest($test);
+        $this->setTransformation($transformation);
+    }
+
     public function apply(): void
     {
         $this->applyTest();
         $this->applyTransformation();
     }
 
-    /**
-     * @throws CalendarException
-     */
     public function applyTest(): void
     {
-        if (!empty($test = $this->getTest())) {
-            $trash = [];
-            while ($event = $this->getEvent()) {
-                if (call_user_func($test, $event) === false) {
-                    array_push($trash, $event);
+        if (!$this->tested) {
+            $this->tested = true;
+            if (!empty($test = $this->getTest())) {
+                $trash = [];
+                foreach ($this->getAllEvents() as $event) {
+                    if (call_user_func($test, $event) === false) {
+                        array_push($trash, $event);
+                    }
                 }
-            }
-            foreach ($trash as $event) {
-                $this->deleteComponent($event->getUid());
+                foreach ($trash as $event) {
+                    $this->removeComponent($event);
+                }
             }
         }
     }
 
-    /**
-     * @throws CalendarException
-     */
     public function applyTransformation(): void
     {
-        if (!empty($transformation = $this->getTransformation())) {
-            while ($event = $this->getEvent()) {
-                $transformed = clone $event;
-                $transformed = call_user_func($transformation, $transformed);
-                if ($event != $transformed) {
-                    $this->setComponent($transformed, $event->getUid());
+        if (!$this->transformed) {
+            $this->transformed = true;
+            if (!empty($transformation = $this->getTransformation())) {
+                foreach ($this->getAllEvents() as $event) {
+                    $transformed = clone $event;
+                    $transformed = call_user_func($transformation, $transformed);
+                    if ($event != $transformed) {
+                        $this->setComponent($event, $transformed);
+                    }
                 }
             }
         }
@@ -87,7 +89,6 @@ class FilteredCalendar extends Calendar
     /**
      * @param callable $test function(Event): bool
      * @throws FilteredCalendarException
-     * @throws CalendarException
      */
     public function setTest(callable $test = null): void
     {
@@ -113,7 +114,6 @@ class FilteredCalendar extends Calendar
 
     /**
      * @param callable|null $transformation function(Event): Event
-     * @throws CalendarException
      * @throws FilteredCalendarException
      */
     public function setTransformation(callable $transformation = null): void

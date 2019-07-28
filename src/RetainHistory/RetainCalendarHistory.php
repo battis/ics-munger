@@ -4,17 +4,21 @@
 namespace Battis\IcsMunger\RetainHistory;
 
 
-use Battis\IcsMunger\Calendar\AbstractPersistentCalendar;
-use Battis\IcsMunger\Calendar\Calendar;
-use Battis\IcsMunger\Calendar\CalendarException;
-use Battis\IcsMunger\Calendar\Event;
+use Battis\Calendar\Component;
+use Battis\Calendar\Exceptions\ValueException;
+use Battis\Calendar\Properties\Component\DateTime\DateTimeStart;
+use Battis\Calendar\Properties\Component\Relationship\UniqueIdentifier;
+use Battis\Calendar\Property;
+use Battis\Calendar\Workflows\iCalendar;
+use Battis\IcsMunger\PersistentCalendar\AbstractPersistentCalendar;
 use DateTime;
 use Exception;
-use kigkonsult\iCalcreator\vcalendar;
 use PDO;
 
 class RetainCalendarHistory extends AbstractPersistentCalendar
 {
+    const INIFINITE_FUTURE = 'ZZZ';
+
     /**
      * @var int
      */
@@ -29,41 +33,32 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
     private $sync = null;
 
     /**
-     * CalendarWithHistory constructor.
-     * @param Calendar|vcalendar|array|string $data
+     * @param Property[] $properties
+     * @param Component[] $components
      * @param PDO $db
      * @param string $name
      * @throws RetainCalendarHistoryException
-     * @throws CalendarException
      */
-    public function __construct($data, PDO $db = null, $name = null)
+    public function __construct(array $properties = [], array $components = [], PDO $db, string $name)
     {
-        parent::__construct($data, /** @scrutinizer ignore-type */
-            $db);
-        if ($name === null) {
-            if ($data instanceof Calendar && isset($data->name)) {
-                $name = $data->name;
-            } elseif (empty($name = $this->getConfig('url'))) {
-                if (is_string($data) && empty($name = realpath($data))) {
-                    throw new RetainCalendarHistoryException('Cannot uniquely identify calendar name implicitly');
-                }
-            }
-        }
+        parent::__construct($properties, $components, $db);
         $this->setName($name);
-        $this->sync();
     }
 
     /**
-     * @throws CalendarException
      * @throws Exception
+     *
+     * TODO Allow specification of comparison criteria beyond or instead of UID
      */
-    public function sync(): void
+    public function sync(): CalendarDiff
     {
+        $result = new CalendarDiff();
         $priorSyncTimestamp = $this->getSyncedTimestamp();
         if ($firstEventStart = $this->getFirstEventStart()) {
-            $this->cacheLiveEvents();
-            $this->recoverCachedEvents($priorSyncTimestamp, $firstEventStart);
+            $result->merge($this->cacheLiveEvents());
+            $result->merge($this->recoverCachedEvents($priorSyncTimestamp, $firstEventStart));
         }
+        return $result;
     }
 
     public function getId(): int
@@ -77,20 +72,21 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
     }
 
     /**
-     * @return DateTime|boolean
+     * @return DateTime
      * @throws Exception
      */
-    public function getFirstEventStart()
+    public function getFirstEventStart(): ?string
     {
-        $starts = $this->getProperty('dtstart');
-        if (is_array($starts)) {
-            $dates = array_keys($starts);
-            if (count($dates)) {
-                sort($dates);
-                return new DateTime((string)$dates[0]);
+        $first = self::INIFINITE_FUTURE;
+        foreach ($this->getAllEvents() as $event) {
+            if (($current = (string)$event->getProperty(DateTimeStart::class)->getValue()) < $first) {
+                $first = $current;
             }
         }
-        return false;
+        if ($first !== self::INIFINITE_FUTURE) {
+            return $first;
+        }
+        return null;
     }
 
     /**
@@ -147,43 +143,54 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
     }
 
     /**
-     * @return void
-     * @throws CalendarException
+     * @return CalendarDiff
+     * @throws ValueException
      */
-    public function cacheLiveEvents(): void
+    public function cacheLiveEvents(): CalendarDiff
     {
+        $result = new CalendarDiff();
         $select = $this->prepare('SELECT * FROM `events` WHERE `calendar` = :calendar AND `uid` = :uid');
         $update = $this->prepare('UPDATE `events` SET `vevent` = :vevent, `sync` = :sync WHERE `id` = :id');
         $insert = $this->prepare('INSERT INTO `events` SET `calendar` = :calendar, `uid` = :uid, `vevent` = :vevent, `sync` = :sync');
-        while ($e = $this->getEvent()) {
+        foreach ($this->getAllEvents() as $e) {
+            $uid = (string)$e->getProperty(UniqueIdentifier::class)->getValue();
+            $vevent = iCalendar::export($e);
             $select->execute([
                 'calendar' => $this->getId(),
-                'uid' => $e->getUid()
+                'uid' => $uid
             ]);
             if ($cache = $select->fetch()) {
-                $update->execute([
-                    'vevent' => $e->createComponent(),
-                    'sync' => $this->getSyncId(),
-                    'id' => $cache['id']
-                ]);
+                if ($cache['vevent'] != $vevent) {
+                    $update->execute([
+                        'vevent' => $vevent,
+                        'sync' => $this->getSyncId(),
+                        'id' => $cache['id']
+                    ]);
+                    $cachedEvent = iCalendar::parse($cache['vevent']);
+                    $result->addChange($cachedEvent, $e);
+                }
             } else {
                 $insert->execute([
                     'calendar' => $this->getId(),
-                    'uid' => $e->getUid(),
-                    'vevent' => $e->createComponent(),
+                    'uid' => $uid,
+                    'vevent' => $vevent,
                     'sync' => $this->getSyncId()
                 ]);
+                $result->addAddition($e);
             }
         }
+        return $result;
     }
 
     /**
      * @param string|bool $priorSyncTimestamp
-     * @param DateTime|bool $firstEventStart
-     * @throws CalendarException
+     * @param string $firstEventStart (Optional, default `INFINITE_FUTURE`)
+     * @return CalendarDiff
+     * @throws ValueException
      */
-    public function recoverCachedEvents($priorSyncTimestamp = false, $firstEventStart = false): void
+    public function recoverCachedEvents($priorSyncTimestamp = false, $firstEventStart = self::INIFINITE_FUTURE): CalendarDiff
     {
+        $result = new CalendarDiff();
         if ($priorSyncTimestamp !== false && $firstEventStart !== false) {
             $statement = $this->prepare('SELECT * FROM `events` WHERE `calendar` = :calendar AND `modified` <= :modified AND `sync` != :sync');
             $delete = $this->prepare('DELETE FROM `events` WHERE `id` = :id');
@@ -193,15 +200,17 @@ class RetainCalendarHistory extends AbstractPersistentCalendar
                 'sync' => $this->getSyncId()
             ]);
             while ($cache = $statement->fetch()) {
-                $e = new Event();
-                $e->parse($cache['vevent']);
-                if ($e->getStart() < $firstEventStart) {
+                $e = iCalendar::parse($cache['vevent']);
+                // FIXME
+                if ((string)$e->getProperty(DateTimeStart::class)->getValue() < $firstEventStart) {
                     $this->addComponent($e);
                 } else {
                     $delete->execute(['id' => $cache['id']]);
+                    $result->addRemoval($e);
                 }
             }
         }
         $this->sync = null;
+        return $result;
     }
 }

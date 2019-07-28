@@ -13,11 +13,13 @@
         "kigkonsult/icalcreator": "^2.4",
         "michelf/php-markdown": "^1.8",
         "swiftmailer/swiftmailer": "^6.2",
-        "php-imap/php-imap": "^3.0"
+        "php-imap/php-imap": "^3.0",
+        "vlucas/phpdotenv": "^3.4"
     },
     "autoload": {
         "psr-4": {
-            "Battis\\IcsMunger\\": "src/"
+            "Battis\\IcsMunger\\": "src/",
+            "Battis\\Calendar\\": "external/calendar/src/"
         }
     },
     "autoload-dev": {

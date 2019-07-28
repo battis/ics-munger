@@ -4,7 +4,7 @@
 namespace Battis\IcsMunger\ConvertToInvitation;
 
 
-use Battis\IcsMunger\Calendar\Calendar;
+use Battis\IcsMunger\PersistentCalendar\Calendar;
 
 class CalendarWrapper extends Calendar
 {

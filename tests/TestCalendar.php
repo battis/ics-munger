@@ -4,7 +4,7 @@
 namespace Battis\IcsMunger\Tests;
 
 
-use Battis\IcsMunger\Calendar\Calendar;
+use Battis\IcsMunger\PersistentCalendar\Calendar;
 
 class TestCalendar extends Calendar
 {

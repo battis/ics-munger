@@ -4,8 +4,8 @@
 namespace Battis\IcsMunger\Tests\Calendar;
 
 
-use Battis\IcsMunger\Calendar\Calendar;
-use Battis\IcsMunger\Calendar\CalendarException;
+use Battis\IcsMunger\PersistentCalendar\Calendar;
+use Battis\IcsMunger\PersistentCalendar\CalendarException;
 use Battis\IcsMunger\Tests\TestCalendar;
 
 class CalendarTest extends AbstractCalendarTestCase
